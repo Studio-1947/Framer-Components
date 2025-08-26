@@ -1,0 +1,40 @@
+{
+  "name": "framer-dynamic-graph",
+  "version": "1.0.0",
+  "description": "Dynamic graph component for Framer that fetches data from Google Sheets and creates intelligent visualizations",
+  "main": "components/DynamicGraph.tsx",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "dev": "tsc --noEmit --watch",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "framer",
+    "react",
+    "data-visualization",
+    "google-sheets",
+    "charts",
+    "dashboard",
+    "components"
+  ],
+  "author": "Dynamic Graph Team",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "framer-motion": "^12.23.12",
+    "openai": "^5.13.1",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "recharts": "^3.1.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}
