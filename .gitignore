@@ -1,67 +1,45 @@
 # Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+node_modules
 
-# Production builds
+# Build output
 dist/
-build/
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Documentation
+docs/
 
-# IDE files
+# Examples
+examples/
+
+# Miscellaneous
+miscellaneous/
+
+# Source files
+src/
+
+# Tests
+tests/
+
+# Types
+types/
+
+# Utilities
+utils/
+
+# IDE and Editor folders
 .vscode/
-.idea/
-*.swp
-*.swo
-
-# GitHub workflows and Kiro config
-.github/
 .kiro/
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# GitHub workflows
+.github/
 
-# Logs
-logs
-*.log
+# Mocks
+__mocks__/
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Declaration files
+declarations.d.ts
 
-# Coverage directory used by tools like istanbul
-coverage/
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# Temporary folders
-tmp/
-temp/
+# Package files
+index.ts
+package.json
+package-lock.json
+tsconfig.json
