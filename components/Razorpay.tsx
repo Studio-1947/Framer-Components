@@ -36,16 +36,19 @@ export default function Form_razor_pay(props) {
                 border-radius: 25px !important;
                 box-sizing: border-box !important;
                 overflow: hidden !important;
+                box-shadow: none !important;
             }
             
             /* Additional targeting for deeply nested elements */
             div[data-payment_button_id] * {
                 border-radius: 25px !important;
+                box-shadow: none !important;
             }
             
             /* Force border radius on all child elements */
             form * {
                 border-radius: inherit !important;
+                box-shadow: none !important;
             }
         `
         document.head.appendChild(style)
@@ -60,6 +63,7 @@ export default function Form_razor_pay(props) {
                     (htmlButton as HTMLInputElement | HTMLButtonElement).form?.action?.includes('razorpay')) {
                     htmlButton.style.borderRadius = '25px'
                     htmlButton.style.overflow = 'hidden'
+                    htmlButton.style.boxShadow = 'none'
                 }
             })
         })
@@ -76,8 +80,13 @@ export default function Form_razor_pay(props) {
         <motion.div
             style={{
                 borderRadius: "25px",
-                display: "inline-block",
-                padding: "2px"
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+                height: "100%",
+                minHeight: "60px",
+                backgroundColor: "transparent"
             }}
         >
             <form
@@ -85,8 +94,7 @@ export default function Form_razor_pay(props) {
                 style={{ 
                     borderRadius: "25px",
                     border: "none",
-                    
-                    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                    backgroundColor: "transparent"
                 }}
             />
         </motion.div>
