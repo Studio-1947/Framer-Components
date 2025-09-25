@@ -1,6 +1,6 @@
 // Rotational component that changes direction based on scroll - clockwise on scroll down, anticlockwise on scroll up
-import React, { useEffect, useState, useRef, type CSSProperties } from "react"
-import { motion, useMotionValue, useAnimationFrame } from "framer-motion"
+import React, { useEffect, useRef, type CSSProperties } from "react"
+import { motion, useAnimationFrame, useMotionValue } from "framer-motion"
 import { addPropertyControls, ControlType } from "framer"
 
 // Fallback for Slot control for environments where ControlType.Slot isn't typed
@@ -30,34 +30,30 @@ export default function ScrollRotator(props: ScrollRotatorProps) {
         showBackground
     } = props
 
-    const [isClockwise, setIsClockwise] = useState(true)
-    const [isAnimating, setIsAnimating] = useState(true)
+    const rotationValue = useMotionValue(0)
+    const directionRef = useRef(1) // 1 for clockwise, -1 for anticlockwise
     const lastScrollY = useRef(0)
-    const rotation = useMotionValue(0)
     // Treat SSR as static render to avoid running animations on the server/canvas
     const isStatic = typeof window === "undefined"
 
     useEffect(() => {
-        if (isStatic) {
-            setIsAnimating(false)
-            return
-        }
+        if (isStatic) return
 
         const handleScroll = () => {
             if (typeof window === "undefined") return
 
             const currentScrollY = window.scrollY
-            // Ignore events that don't change scroll position to avoid flicker/stutter
-            const delta = currentScrollY - lastScrollY.current
-            // Require a minimum delta to avoid rapid toggling near rest due to momentum/scroll bounce
-            if (Math.abs(delta) < 1) return
-            const scrollDirection = delta > 0 ? "down" : "up"
+            const deltaY = currentScrollY - lastScrollY.current
             
-            if (scrollDirection === "down" && !isClockwise) {
-                // Make direction change immediate to avoid perceived lag/stuck behavior
-                setIsClockwise(true)
-            } else if (scrollDirection === "up" && isClockwise) {
-                setIsClockwise(false)
+            // Direct direction switching - no state involved
+            if (Math.abs(deltaY) > 1) {
+                if (deltaY > 0) {
+                    // Scrolling down = clockwise (positive)
+                    directionRef.current = 1
+                } else {
+                    // Scrolling up = anticlockwise (negative)
+                    directionRef.current = -1
+                }
             }
             
             lastScrollY.current = currentScrollY
@@ -68,18 +64,16 @@ export default function ScrollRotator(props: ScrollRotatorProps) {
         return () => {
             window.removeEventListener("scroll", handleScroll)
         }
-    }, [isClockwise, isStatic])
+    }, [isStatic])
 
+    // Continuous rotation with direct direction multiplication
     useAnimationFrame(() => {
-        if (!isAnimating) return
+        if (isStatic) return
+
+        const currentRotation = rotationValue.get()
+        const newRotation = currentRotation + (rotationSpeed * directionRef.current)
         
-        const increment = Math.abs(rotationSpeed) * (isClockwise ? 1 : -1)
-        let next = rotation.get() + increment
-        // Keep the value bounded to avoid precision drift and stutter
-        if (next >= 360 || next <= -360) {
-            next = next % 360
-        }
-        rotation.set(next)
+        rotationValue.set(newRotation)
     })
 
     // Convert children to array and calculate positions
@@ -133,7 +127,7 @@ export default function ScrollRotator(props: ScrollRotatorProps) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 10,
-                rotate: rotation,
+                rotate: rotationValue,
             }}
         >
             {childrenArray.map((child, index) => (
