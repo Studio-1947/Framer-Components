@@ -46,6 +46,18 @@ An invisible overlay component that captures clicks and communicates with ViewCo
 />
 ```
 
+### Weather
+A real-time weather display component that fetches current temperature and air quality data.
+
+**Features:**
+- Real-time temperature and AQI data from Open-Meteo APIs
+- Configurable location coordinates
+- Automatic data refresh intervals
+- Clean, minimal design with transparent background
+- Comprehensive typography controls
+- Error handling with user feedback
+- Mobile responsive design
+
 ### CircularText
 A rotating text component that displays text in a circular pattern with customizable animation.
 
@@ -89,7 +101,14 @@ All components support extensive customization through Framer's property control
 
 ## Version History
 
-### v1.1.0 (Current)
+### v1.2.0 (Current)
+- **NEW**: Weather component with real-time data fetching
+- Added Open-Meteo API integration for temperature and air quality
+- Optimized font control patterns for better Framer compatibility
+- Updated component documentation with font handling best practices
+- Enhanced typography controls across all components
+
+### v1.1.0
 - **NEW**: Mouse Triggers system with ViewCounter and ClickTrigger components
 - Added sophisticated click tracking and view counting functionality
 - Event-based component communication system
