@@ -10,13 +10,19 @@ interface ContactCardProps {
     hoverColor: string;
     backgroundPattern: boolean;
     image?: string | { src?: string; srcSet?: string; width?: number; height?: number };
-    nameFontSize?: number;
-    nameFontWeight?: number;
-    nameFontFamily?: string;
-    designationFontSize?: number;
-    designationFontWeight?: number;
-    designationFontFamily?: string;
-    useProjectFonts?: boolean;
+    nameFont: {
+        fontFamily: string
+        fontWeight: string | number
+        fontStyle: string
+    }
+    nameFontSize: number
+    designationFont: {
+        fontFamily: string
+        fontWeight: string | number
+        fontStyle: string
+    }
+    designationFontSize: number
+    textAlign?: "left" | "center" | "right";
 }
 
 const isMobile = () => {
@@ -35,13 +41,11 @@ export function ContactCard({
     hoverColor,
     backgroundPattern,
     image,
+    nameFont = { fontFamily: "Inter", fontWeight: 700, fontStyle: "normal" },
     nameFontSize = 22,
-    nameFontWeight = 700,
-    nameFontFamily = "inherit",
+    designationFont = { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" },
     designationFontSize = 16,
-    designationFontWeight = 400,
-    designationFontFamily = "inherit",
-    useProjectFonts = true
+    textAlign = "left"
 }: ContactCardProps) {
     const [hovered, setHovered] = React.useState(false);
     const isMobileDevice = isMobile();
@@ -112,19 +116,22 @@ export function ContactCard({
                 height: image ? "50%" : undefined,
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "flex-start"
+                alignItems: textAlign === "center" ? "center" : textAlign === "right" ? "flex-end" : "flex-start",
+                textAlign: textAlign
             }}>
                 {/* Image moved to top full-bleed container */}
                 <div style={{
-                    fontWeight: nameFontWeight,
+                    fontWeight: nameFont.fontWeight,
                     fontSize: nameFontSize,
-                    fontFamily: useProjectFonts ? ("inherit" as any) : (nameFontFamily as any),
+                    fontFamily: nameFont.fontFamily,
+                    fontStyle: nameFont.fontStyle,
                     color: hovered ? "#222" : "#222"
                 }}>{name}</div>
                 <div style={{
-                    fontWeight: designationFontWeight,
+                    fontWeight: designationFont.fontWeight,
                     fontSize: designationFontSize,
-                    fontFamily: useProjectFonts ? ("inherit" as any) : (designationFontFamily as any),
+                    fontFamily: designationFont.fontFamily,
+                    fontStyle: designationFont.fontStyle,
                     color: hovered ? "#222" : "#888",
                     marginTop: 4
                 }}>{designation}</div>
@@ -159,56 +166,40 @@ export function ContactCard({
 }
 
 addPropertyControls(ContactCard, {
-    useProjectFonts: {
-        type: ControlType.Boolean,
-        title: "Use Project Font",
-        defaultValue: true
-    },
+
     // Name typography
+    nameFont: {
+        type: ControlType.Font,
+        title: "Name Font",
+        defaultValue: {
+            fontFamily: "Inter",
+            fontWeight: 700,
+            systemFont: true
+        }
+    },
     nameFontSize: {
         type: ControlType.Number,
-        title: "Name Font Size",
+        title: "Name Size",
         min: 10,
         max: 48,
         defaultValue: 22
     },
-    nameFontWeight: {
-        type: ControlType.Number,
-        title: "Name Font Weight",
-        min: 100,
-        max: 900,
-        step: 100,
-        defaultValue: 700
-    },
-    nameFontFamily: {
-        type: ControlType.String,
-        title: "Name Font Family",
-        placeholder: "e.g. 'Your Custom Font', Arial, sans-serif",
-    defaultValue: "inherit",
-    hidden(props: any){ return !!props.useProjectFonts }
-    },
     // Designation typography
+    designationFont: {
+        type: ControlType.Font,
+        title: "Designation Font",
+        defaultValue: {
+            fontFamily: "Inter",
+            fontWeight: 400,
+            systemFont: true
+        }
+    },
     designationFontSize: {
         type: ControlType.Number,
-        title: "Designation Font Size",
+        title: "Designation Size",
         min: 10,
         max: 36,
         defaultValue: 16
-    },
-    designationFontWeight: {
-        type: ControlType.Number,
-        title: "Designation Font Weight",
-        min: 100,
-        max: 900,
-        step: 100,
-        defaultValue: 400
-    },
-    designationFontFamily: {
-        type: ControlType.String,
-        title: "Designation Font Family",
-        placeholder: "e.g. 'Your Custom Font', Arial, sans-serif",
-    defaultValue: "inherit",
-    hidden(props: any){ return !!props.useProjectFonts }
     },
     image: {
         type: ControlType.ResponsiveImage,
@@ -248,5 +239,13 @@ addPropertyControls(ContactCard, {
         type: ControlType.Boolean,
         title: "Pattern",
         defaultValue: true
+    },
+    textAlign: {
+        type: ControlType.Enum,
+        title: "Align",
+        options: ["left", "center", "right"],
+        optionTitles: ["Left", "Center", "Right"],
+        defaultValue: "left",
+        displaySegmentedControl: true
     }
 });

@@ -10,34 +10,51 @@ interface FeatureCardProps {
   // Content
   heading: string
   features: FeatureItem[]
-  
+
   // Appearance
   width: number
   height: number
   borderRadius: number
   padding: number
-  
+
   // Typography
-  headingFontFamily: string
+  headingFont: {
+    fontFamily: string
+    fontWeight: string | number
+    fontStyle: string
+  }
   headingFontSize: number
-  headingFontWeight: number
   headingLetterSpacing: number
   headingLineHeight: number
-  
+
   // Feature Typography
-  featureFontFamily: string
+  featureFont: {
+    fontFamily: string
+    fontWeight: string | number
+    fontStyle: string
+  }
   featureFontSize: number
-  featureFontWeight: number
   featureLetterSpacing: number
   featureLineHeight: number
-  
+
   // Bullet Options
   bulletStyle: string
   bulletColor: string
   bulletSpacing: number
 
-  // Typography source
-  useProjectFonts: boolean
+  // Colors
+  backgroundColor: string
+  hoverBackgroundColor: string
+  headingColor: string
+  hoverHeadingColor: string
+  featureColor: string
+  hoverFeatureColor: string
+
+  // Alignment
+  headingAlign: "left" | "center" | "right"
+  featureAlign: "left" | "center" | "right"
+
+
 }
 
 export default function FeatureCard(props: Partial<FeatureCardProps>) {
@@ -51,40 +68,54 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
       { text: "Lorem Ipsum" },
       { text: "Lorem Ipsum" }
     ],
-    
+
     // Appearance
     width = 200,
     height = 280,
     borderRadius = 12,
     padding = 24,
-    
+
     // Typography
-    headingFontFamily = "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+    headingFont = {
+      fontFamily: "Inter",
+      fontWeight: 600,
+      fontStyle: "normal",
+    },
     headingFontSize = 20,
-    headingFontWeight = 600,
     headingLetterSpacing = -0.4,
     headingLineHeight = 1.2,
-    
+
     // Feature Typography
-    featureFontFamily = "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+    featureFont = {
+      fontFamily: "Inter",
+      fontWeight: 400,
+      fontStyle: "normal",
+    },
     featureFontSize = 14,
-    featureFontWeight = 400,
     featureLetterSpacing = 0,
     featureLineHeight = 1.5,
-    
+
     // Bullet Options
     bulletStyle = "•",
     bulletColor = "#000000",
-    bulletSpacing = 8
+    bulletSpacing = 8,
+
+    // Colors
+    backgroundColor = "#FFFFFF",
+    hoverBackgroundColor = "#FDC600",
+    headingColor = "#000000",
+    hoverHeadingColor = "#000000",
+    featureColor = "#000000",
+    hoverFeatureColor = "#000000",
+
+    // Alignment
+    headingAlign = "left",
+    featureAlign = "left"
   } = props
 
   // Fixed colors - always white background
-  const backgroundColor = "#FFFFFF"
-  const defaultHeadingColor = "#000000"
-  const defaultFeatureColor = "#000000"
-  const hoverBackgroundColor = "#FDC600"
-  const hoverHeadingColor = "#000000"
-  const hoverFeatureColor = "#000000"
+  const defaultHeadingColor = headingColor
+  const defaultFeatureColor = featureColor
 
   return (
     <motion.div
@@ -98,7 +129,8 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
         cursor: "pointer",
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start",
+
+        alignItems: headingAlign === "center" ? "center" : headingAlign === "right" ? "flex-end" : "flex-start",
         justifyContent: "flex-start",
         gap: 16,
         overflow: "hidden",
@@ -119,14 +151,15 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
       <motion.h3
         style={{
           margin: 0,
-          fontFamily: props.useProjectFonts ? ("inherit" as any) : (headingFontFamily as any),
+          fontFamily: headingFont.fontFamily,
           fontSize: headingFontSize,
-          fontWeight: headingFontWeight,
+          fontWeight: headingFont.fontWeight,
+          fontStyle: headingFont.fontStyle,
           letterSpacing: headingLetterSpacing,
           lineHeight: headingLineHeight,
           color: defaultHeadingColor,
           width: "100%",
-          textAlign: "left"
+          textAlign: headingAlign
         }}
         variants={{
           hover: {
@@ -140,7 +173,7 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
       >
         {heading}
       </motion.h3>
-      
+
       {/* Features List */}
       <div
         style={{
@@ -148,7 +181,8 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
           flexDirection: "column",
           gap: 8,
           width: "100%",
-          flex: 1
+          flex: 1,
+          alignItems: featureAlign === "center" ? "center" : featureAlign === "right" ? "flex-end" : "flex-start"
         }}
       >
         {features.map((feature, index) => (
@@ -175,7 +209,7 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
               style={{
                 color: bulletColor,
                 fontSize: featureFontSize,
-                fontWeight: featureFontWeight,
+                fontWeight: featureFont.fontWeight,
                 lineHeight: featureLineHeight,
                 flexShrink: 0,
                 marginTop: 0
@@ -192,18 +226,19 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
             >
               {bulletStyle}
             </motion.span>
-            
+
             {/* Feature Text */}
             <motion.p
               style={{
                 margin: 0,
-                fontFamily: props.useProjectFonts ? ("inherit" as any) : (featureFontFamily as any),
+                fontFamily: featureFont.fontFamily,
                 fontSize: featureFontSize,
-                fontWeight: featureFontWeight,
+                fontWeight: featureFont.fontWeight,
+                fontStyle: featureFont.fontStyle,
                 letterSpacing: featureLetterSpacing,
                 lineHeight: featureLineHeight,
                 color: defaultFeatureColor,
-                textAlign: "left",
+                textAlign: featureAlign,
                 flex: 1
               }}
               variants={{
@@ -227,11 +262,7 @@ export default function FeatureCard(props: Partial<FeatureCardProps>) {
 
 // Framer Property Controls
 addPropertyControls(FeatureCard, {
-  useProjectFonts: {
-    type: ControlType.Boolean,
-    title: "Use Project Font",
-    defaultValue: true,
-  },
+
   // Content Section
   heading: {
     type: ControlType.String,
@@ -239,7 +270,7 @@ addPropertyControls(FeatureCard, {
     defaultValue: "Lorem Ipsum",
     placeholder: "Enter heading text"
   },
-  
+
   features: {
     type: ControlType.Array,
     title: "Features",
@@ -263,7 +294,7 @@ addPropertyControls(FeatureCard, {
     ],
     maxCount: 10
   },
-  
+
   // Layout Section
   width: {
     type: ControlType.Number,
@@ -274,7 +305,7 @@ addPropertyControls(FeatureCard, {
     step: 10,
     unit: "px"
   },
-  
+
   height: {
     type: ControlType.Number,
     title: "Min Height",
@@ -284,7 +315,7 @@ addPropertyControls(FeatureCard, {
     step: 10,
     unit: "px"
   },
-  
+
   borderRadius: {
     type: ControlType.Number,
     title: "Border Radius",
@@ -294,7 +325,7 @@ addPropertyControls(FeatureCard, {
     step: 1,
     unit: "px"
   },
-  
+
   padding: {
     type: ControlType.Number,
     title: "Padding",
@@ -304,15 +335,18 @@ addPropertyControls(FeatureCard, {
     step: 4,
     unit: "px"
   },
-  
+
   // Heading Typography
-  headingFontFamily: {
-    type: ControlType.String,
-    title: "Heading Font Family",
-  defaultValue: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-  hidden(props: any){ return !!props.useProjectFonts }
+  headingFont: {
+    type: ControlType.Font,
+    title: "Heading Font",
+    defaultValue: {
+      fontFamily: "Inter",
+      fontWeight: 600,
+      fontStyle: "normal",
+    },
   },
-  
+
   headingFontSize: {
     type: ControlType.Number,
     title: "Heading Font Size",
@@ -322,16 +356,9 @@ addPropertyControls(FeatureCard, {
     step: 1,
     unit: "px"
   },
-  
-  headingFontWeight: {
-    type: ControlType.Number,
-    title: "Heading Font Weight",
-    defaultValue: 600,
-    min: 100,
-    max: 900,
-    step: 100
-  },
-  
+
+
+
   headingLetterSpacing: {
     type: ControlType.Number,
     title: "Heading Letter Spacing",
@@ -341,7 +368,7 @@ addPropertyControls(FeatureCard, {
     step: 0.1,
     unit: "px"
   },
-  
+
   headingLineHeight: {
     type: ControlType.Number,
     title: "Heading Line Height",
@@ -350,15 +377,18 @@ addPropertyControls(FeatureCard, {
     max: 2.0,
     step: 0.1
   },
-  
+
   // Feature Typography
-  featureFontFamily: {
-    type: ControlType.String,
-    title: "Feature Font Family",
-  defaultValue: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-  hidden(props: any){ return !!props.useProjectFonts }
+  featureFont: {
+    type: ControlType.Font,
+    title: "Feature Font",
+    defaultValue: {
+      fontFamily: "Inter",
+      fontWeight: 400,
+      fontStyle: "normal",
+    },
   },
-  
+
   featureFontSize: {
     type: ControlType.Number,
     title: "Feature Font Size",
@@ -368,16 +398,9 @@ addPropertyControls(FeatureCard, {
     step: 1,
     unit: "px"
   },
-  
-  featureFontWeight: {
-    type: ControlType.Number,
-    title: "Feature Font Weight",
-    defaultValue: 400,
-    min: 100,
-    max: 900,
-    step: 100
-  },
-  
+
+
+
   featureLetterSpacing: {
     type: ControlType.Number,
     title: "Feature Letter Spacing",
@@ -387,7 +410,7 @@ addPropertyControls(FeatureCard, {
     step: 0.1,
     unit: "px"
   },
-  
+
   featureLineHeight: {
     type: ControlType.Number,
     title: "Feature Line Height",
@@ -396,7 +419,7 @@ addPropertyControls(FeatureCard, {
     max: 2.0,
     step: 0.1
   },
-  
+
   // Bullet Controls
   bulletStyle: {
     type: ControlType.Enum,
@@ -423,20 +446,69 @@ addPropertyControls(FeatureCard, {
     ],
     defaultValue: "•"
   },
-  
+
   bulletColor: {
     type: ControlType.Color,
     title: "Bullet Color",
     defaultValue: "#000000"
   },
-  
+
   bulletSpacing: {
     type: ControlType.Number,
     title: "Bullet Spacing",
     defaultValue: 8,
     min: 4,
     max: 20,
-    step: 1,
     unit: "px"
+  },
+
+  // Colors
+  backgroundColor: {
+    type: ControlType.Color,
+    title: "Background",
+    defaultValue: "#FFFFFF"
+  },
+  hoverBackgroundColor: {
+    type: ControlType.Color,
+    title: "Hover Bg",
+    defaultValue: "#FDC600"
+  },
+  headingColor: {
+    type: ControlType.Color,
+    title: "Heading Color",
+    defaultValue: "#000000"
+  },
+  hoverHeadingColor: {
+    type: ControlType.Color,
+    title: "Hover Heading",
+    defaultValue: "#000000"
+  },
+  featureColor: {
+    type: ControlType.Color,
+    title: "Feature Color",
+    defaultValue: "#000000"
+  },
+  hoverFeatureColor: {
+    type: ControlType.Color,
+    title: "Hover Feature",
+    defaultValue: "#000000"
+  },
+
+  // Alignment
+  headingAlign: {
+    type: ControlType.Enum,
+    title: "Heading Align",
+    options: ["left", "center", "right"],
+    optionTitles: ["Left", "Center", "Right"],
+    defaultValue: "left",
+    displaySegmentedControl: true
+  },
+  featureAlign: {
+    type: ControlType.Enum,
+    title: "Feature Align",
+    options: ["left", "center", "right"],
+    optionTitles: ["Left", "Center", "Right"],
+    defaultValue: "left",
+    displaySegmentedControl: true
   }
 })

@@ -8,10 +8,12 @@ interface FlipWordsProps {
     textBefore?: string
     textAfter?: string
     styling: {
-        useProjectFonts: boolean
-        fontFamily: string
+        font: {
+            fontFamily: string
+            fontWeight: string | number
+            fontStyle: string
+        }
         fontSize: number
-        fontWeight: string
         color: string
         backgroundColor: string
         lineHeight: number
@@ -20,20 +22,21 @@ interface FlipWordsProps {
         padding: number
         margin: number
         enableMobileResponsive: boolean
+        alignment: "left" | "center" | "right"
     }
     highlight: {
         enableHighlight: boolean
         highlightColor: string
         highlightFontWeight: string
-    highlightFontSize: number
-    highlightFontSizeMode?: "inherit" | "custom"
+        highlightFontSize: number
+        highlightFontSizeMode?: "inherit" | "custom"
         highlightBackgroundColor: string
         highlightBorderRadius: number
         highlightPadding: number
         highlightMargin: number
     }
     animation: {
-    animationType: "fade" | "slide" | "flip" | "bounce" | "scale" | "rotate" | "zoom" | "tilt"
+        animationType: "fade" | "slide" | "flip" | "bounce" | "scale" | "rotate" | "zoom" | "tilt"
         animationDuration: number
         animationEasing: "ease" | "ease-in" | "ease-out" | "ease-in-out" | "linear"
         pauseOnHover: boolean
@@ -161,8 +164,9 @@ export default function FlipWords(props: FlipWordsProps) {
     const [shuffledIndices, setShuffledIndices] = useState<number[]>([])
     // #endregion
 
-    // Font resolution following the Framer project guidelines
-    const resolvedFontFamily = props.styling.useProjectFonts ? "inherit" : props.styling.fontFamily
+    // Font resolution
+    const font = props.styling.font || { fontFamily: "Inter", fontWeight: 600 }
+    const resolvedFontFamily = font.fontFamily
 
     // Merge animation defaults with incoming props to ensure valid values when only type is set via controls
     const anim = {
@@ -201,7 +205,7 @@ export default function FlipWords(props: FlipWordsProps) {
         if (props.words.length <= 1) return
 
         setIsAnimating(true)
-        
+
         // Trigger exit animation
         setTimeout(() => {
             setCurrentWordIndex(getNextWordIndex())
@@ -217,7 +221,7 @@ export default function FlipWords(props: FlipWordsProps) {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current)
             }
-            
+
             intervalRef.current = setInterval(() => {
                 if (!isPaused) {
                     startAnimation()
@@ -244,13 +248,13 @@ export default function FlipWords(props: FlipWordsProps) {
 
     // #region Handlers
     const handleMouseEnter = () => {
-    if (anim.pauseOnHover) {
+        if (anim.pauseOnHover) {
             setIsPaused(true)
         }
     }
 
     const handleMouseLeave = () => {
-    if (anim.pauseOnHover) {
+        if (anim.pauseOnHover) {
             setIsPaused(false)
         }
     }
@@ -258,25 +262,25 @@ export default function FlipWords(props: FlipWordsProps) {
 
     // #region Styling
     const containerStyle: React.CSSProperties = {
-        display: "inline-flex",
+        display: "flex",
         alignItems: "center",
-    justifyContent: "flex-start",
-    width: "fit-content",
-    height: "fit-content",
+        justifyContent: props.styling.alignment === "center" ? "center" : props.styling.alignment === "right" ? "flex-end" : "flex-start",
+        width: "100%",
+        height: "fit-content",
         fontFamily: resolvedFontFamily,
         fontSize: props.styling.fontSize,
-        fontWeight: props.styling.fontWeight,
+        fontWeight: font.fontWeight,
         color: props.styling.color,
-    backgroundColor: "transparent",
+        backgroundColor: "transparent",
         lineHeight: props.styling.lineHeight,
         letterSpacing: props.styling.letterSpacing,
-    borderRadius: 0,
-    padding: 0,
-    margin: 0,
-    cursor: anim.pauseOnHover ? "pointer" : "default",
-    overflow: "visible",
+        borderRadius: 0,
+        padding: 0,
+        margin: 0,
+        cursor: anim.pauseOnHover ? "pointer" : "default",
+        overflow: "visible",
         position: "relative",
-    textAlign: "left",
+        textAlign: props.styling.alignment,
         boxSizing: "border-box",
     }
 
@@ -285,8 +289,8 @@ export default function FlipWords(props: FlipWordsProps) {
         display: "inline-block",
         color: props.highlight.enableHighlight ? props.highlight.highlightColor : props.styling.color,
         fontWeight: props.highlight.enableHighlight
-            ? (props.highlight.highlightFontWeight === "inherit" ? props.styling.fontWeight : props.highlight.highlightFontWeight)
-            : props.styling.fontWeight,
+            ? (props.highlight.highlightFontWeight === "inherit" ? font.fontWeight : props.highlight.highlightFontWeight)
+            : font.fontWeight,
         fontSize: props.highlight.enableHighlight
             ? (props.highlight.highlightFontSizeMode === "inherit" || props.highlight.highlightFontSizeMode === undefined
                 ? props.styling.fontSize
@@ -296,29 +300,27 @@ export default function FlipWords(props: FlipWordsProps) {
         borderRadius: props.highlight.enableHighlight ? props.highlight.highlightBorderRadius : 0,
         padding: props.highlight.enableHighlight ? props.highlight.highlightPadding : 0,
         margin: props.highlight.enableHighlight ? props.highlight.highlightMargin : 0,
-    animation: isAnimating 
-        ? `flipWords${
-            anim.animationType === "fade" ? "Fade" :
-            anim.animationType === "slide" ? "Slide" :
-            anim.animationType === "flip" ? "Flip" :
-            anim.animationType === "bounce" ? "Bounce" :
-            anim.animationType === "scale" ? "Scale" :
-            anim.animationType === "rotate" ? "Rotate" :
-            anim.animationType === "zoom" ? "Zoom" :
-            anim.animationType === "tilt" ? "Tilt" :
-            "Fade"
-           }Out ${anim.animationDuration / 2}ms ${anim.animationEasing} forwards`
-        : `flipWords${
-            anim.animationType === "fade" ? "Fade" :
-            anim.animationType === "slide" ? "Slide" :
-            anim.animationType === "flip" ? "Flip" :
-            anim.animationType === "bounce" ? "Bounce" :
-            anim.animationType === "scale" ? "Scale" :
-            anim.animationType === "rotate" ? "Rotate" :
-            anim.animationType === "zoom" ? "Zoom" :
-            anim.animationType === "tilt" ? "Tilt" :
-            "Fade"
-           }In ${anim.animationDuration / 2}ms ${anim.animationEasing} forwards`,
+        animation: isAnimating
+            ? `flipWords${anim.animationType === "fade" ? "Fade" :
+                anim.animationType === "slide" ? "Slide" :
+                    anim.animationType === "flip" ? "Flip" :
+                        anim.animationType === "bounce" ? "Bounce" :
+                            anim.animationType === "scale" ? "Scale" :
+                                anim.animationType === "rotate" ? "Rotate" :
+                                    anim.animationType === "zoom" ? "Zoom" :
+                                        anim.animationType === "tilt" ? "Tilt" :
+                                            "Fade"
+            }Out ${anim.animationDuration / 2}ms ${anim.animationEasing} forwards`
+            : `flipWords${anim.animationType === "fade" ? "Fade" :
+                anim.animationType === "slide" ? "Slide" :
+                    anim.animationType === "flip" ? "Flip" :
+                        anim.animationType === "bounce" ? "Bounce" :
+                            anim.animationType === "scale" ? "Scale" :
+                                anim.animationType === "rotate" ? "Rotate" :
+                                    anim.animationType === "zoom" ? "Zoom" :
+                                        anim.animationType === "tilt" ? "Tilt" :
+                                            "Fade"
+            }In ${anim.animationDuration / 2}ms ${anim.animationEasing} forwards`,
         transformStyle: "preserve-3d",
         transformOrigin: "center center",
     }
@@ -360,15 +362,15 @@ export default function FlipWords(props: FlipWordsProps) {
                         {props.textBefore}
                     </span>
                 )}
-                
-                <span 
+
+                <span
                     style={wordStyle}
                     className="flip-word"
                     key={`${currentWordIndex}-${currentWord}`}
                 >
                     {currentWord}
                 </span>
-                
+
                 {props.textAfter && (
                     <span style={{ marginLeft: "0.25em" }}>
                         {props.textAfter}
@@ -387,32 +389,35 @@ FlipWords.defaultProps = {
     textBefore: "Build",
     textAfter: "websites",
     styling: {
-        useProjectFonts: true,
-        fontFamily: "Inter, system-ui, sans-serif",
+        font: {
+            fontFamily: "Inter",
+            fontWeight: 600,
+            fontStyle: "normal",
+        },
         fontSize: 24,
-        fontWeight: "600",
-    color: "#FFFFFF",
-    backgroundColor: "transparent",
+        color: "#FFFFFF",
+        backgroundColor: "transparent",
         lineHeight: 1.2,
         letterSpacing: 0,
-    borderRadius: 0,
-    padding: 0,
-    margin: 0,
+        borderRadius: 0,
+        padding: 0,
+        margin: 0,
         enableMobileResponsive: true,
+        alignment: "left",
     },
     highlight: {
         enableHighlight: true,
         highlightColor: "#0066cc",
-    highlightFontWeight: "inherit",
-    highlightFontSize: 24,
-    highlightFontSizeMode: "inherit",
+        highlightFontWeight: "inherit",
+        highlightFontSize: 24,
+        highlightFontSizeMode: "inherit",
         highlightBackgroundColor: "transparent",
         highlightBorderRadius: 0,
         highlightPadding: 0,
         highlightMargin: 0,
     },
     animation: {
-    animationType: "fade",
+        animationType: "fade",
         animationDuration: 600,
         animationEasing: "ease-in-out",
         pauseOnHover: true,
@@ -456,22 +461,20 @@ addPropertyControls(FlipWords, {
         max: 10000,
         step: 100,
         unit: "ms",
-    defaultValue: 2000,
+        defaultValue: 2000,
     },
     styling: {
         type: ControlType.Object,
         title: "Styling",
         controls: {
-            useProjectFonts: {
-                type: ControlType.Boolean,
-                title: "Use Project Font",
-                defaultValue: true,
-            },
-            fontFamily: {
-                type: ControlType.String,
-                title: "Font Family",
-                defaultValue: "Inter, system-ui, sans-serif",
-                hidden(props: any) { return !!props.styling?.useProjectFonts }
+            font: {
+                type: ControlType.Font,
+                title: "Font",
+                defaultValue: {
+                    fontFamily: "Inter",
+                    fontWeight: 600,
+                    systemFont: true,
+                },
             },
             fontSize: {
                 type: ControlType.Number,
@@ -481,13 +484,6 @@ addPropertyControls(FlipWords, {
                 step: 1,
                 unit: "px",
                 defaultValue: 24,
-            },
-            fontWeight: {
-                type: ControlType.Enum,
-                title: "Font Weight",
-                options: ["300", "400", "500", "600", "700", "800", "900"],
-                optionTitles: ["Light", "Normal", "Medium", "Semi-bold", "Bold", "Extra-bold", "Black"],
-                defaultValue: "600",
             },
             color: {
                 type: ControlType.Color,
@@ -517,6 +513,14 @@ addPropertyControls(FlipWords, {
                 type: ControlType.Boolean,
                 title: "Mobile Responsive",
                 defaultValue: true,
+            },
+            alignment: {
+                type: ControlType.Enum,
+                title: "Alignment",
+                options: ["left", "center", "right"],
+                optionTitles: ["Left", "Center", "Right"],
+                defaultValue: "left",
+                displaySegmentedControl: true,
             },
         },
     },
@@ -608,8 +612,8 @@ addPropertyControls(FlipWords, {
             animationType: {
                 type: ControlType.Enum,
                 title: "Animation Type",
-        options: ["fade", "slide", "flip", "bounce", "scale", "rotate", "zoom", "tilt"],
-        optionTitles: ["Fade", "Slide", "Flip", "Bounce", "Scale", "Rotate", "Zoom", "Tilt"],
+                options: ["fade", "slide", "flip", "bounce", "scale", "rotate", "zoom", "tilt"],
+                optionTitles: ["Fade", "Slide", "Flip", "Bounce", "Scale", "Rotate", "Zoom", "Tilt"],
                 defaultValue: "fade",
             },
         },

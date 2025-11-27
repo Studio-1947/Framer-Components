@@ -18,9 +18,18 @@ interface FAQProps {
 
   questionStyle: CSSProperties
   answerStyle: CSSProperties
-  // answerAlign removed (always left)
-  questionFont?: any
-  answerFont?: any
+  questionAlign: "left" | "center" | "right"
+  answerAlign: "left" | "center" | "right"
+  questionFont: {
+    fontFamily: string
+    fontWeight: string | number
+    fontStyle: string
+  }
+  answerFont: {
+    fontFamily: string
+    fontWeight: string | number
+    fontStyle: string
+  }
 
   iconType: "plusminus" | "lines" | "chevron"
   iconSize: number
@@ -43,44 +52,29 @@ export default function FAQ({
 
   questionStyle = { fontSize: 28 },
   answerStyle = { fontSize: 16, lineHeight: 1.5 },
-  questionFont,
-  answerFont,
+  questionAlign = "left",
+  answerAlign = "left",
+  questionFont = {
+    fontFamily: "Inter",
+    fontWeight: 700,
+    fontStyle: "normal",
+  },
+  answerFont = {
+    fontFamily: "Inter",
+    fontWeight: 400,
+    fontStyle: "normal",
+  },
 
   iconType = "plusminus",
   iconSize = 28
 }: Partial<FAQProps>) {
   const animationDuration = 0.35
   const easing = "cubic-bezier(0.4, 0, 0.2, 1)"
-  // Normalize Framer Font control object to CSS style values.
-  const normalizeFont = (f: any) => {
-    if (!f) return {}
-    // Framer font object may include: family, weight, style, variable, fontWeight, fontStyle
-    const fontFamily = f.variable || f.family || f.fontFamily || f.name || f
-    let fontWeight = f.weight || f.fontWeight
-    let fontStyle: string | undefined = f.fontStyle
-
-    const styleVal = f.style || f.variant || f.description
-    if (!fontWeight && typeof styleVal === "string") {
-      const weightMatch = styleVal.match(/([1-9]00)/)
-      if (weightMatch) fontWeight = parseInt(weightMatch[1], 10)
-      else if (/bold/i.test(styleVal)) fontWeight = 700
-      else if (/medium/i.test(styleVal)) fontWeight = 500
-      else if (/semi/i.test(styleVal)) fontWeight = 600
-      else if (/light/i.test(styleVal)) fontWeight = 300
-      else if (/thin|hair/i.test(styleVal)) fontWeight = 100
-    }
-    if (!fontStyle && typeof styleVal === "string") {
-      if (/italic|oblique/i.test(styleVal)) fontStyle = "italic"
-      else fontStyle = "normal"
-    }
-    return { fontFamily, fontWeight, fontStyle }
-  }
-
-  const qFont = normalizeFont(questionFont)
-  const aFont = normalizeFont(answerFont)
+  const qFont = questionFont
+  const aFont = answerFont
   const createId = (item: FAQItem | undefined, i: number) => {
     if (!item) return null
-    return item.id || `faq-item-${i}-${(item.question || '').replace(/\s+/g,'-').toLowerCase()}`
+    return item.id || `faq-item-${i}-${(item.question || '').replace(/\s+/g, '-').toLowerCase()}`
   }
   const [openId, setOpenId] = useState<string | null>(createId(items[0], 0))
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -146,7 +140,7 @@ export default function FAQ({
   }
 
   return (
-  <div style={{ width: "100%", minHeight: "fit-content" }}>
+    <div style={{ width: "100%", minHeight: "fit-content" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: spacing, width: "100%" }}>
         {items.map((item, i) => {
           const id = createId(item, i) as string
@@ -168,13 +162,13 @@ export default function FAQ({
                 }}
                 onClick={() => toggle(id)}
               >
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, textAlign: questionAlign }}>
                   <h3 style={{
                     margin: 0,
                     ...questionStyle,
-                    fontFamily: qFont.fontFamily as any,
+                    fontFamily: qFont.fontFamily,
                     fontWeight: qFont.fontWeight,
-                    fontStyle: qFont.fontStyle as any,
+                    fontStyle: qFont.fontStyle,
                     transition: `color ${animationDuration}s ${easing}`,
                     color: questionColor
                   }}>{item.question}</h3>
@@ -192,11 +186,11 @@ export default function FAQ({
                           paddingRight: 0,
                           paddingBottom: 4,
                           paddingLeft: 0,
-                          textAlign: 'left',
+                          textAlign: answerAlign,
                           ...answerStyle,
-                          fontFamily: aFont.fontFamily as any,
+                          fontFamily: aFont.fontFamily,
                           fontWeight: aFont.fontWeight,
-                          fontStyle: aFont.fontStyle as any,
+                          fontStyle: aFont.fontStyle,
                           color: answerColor,
                         }}>{item.answer}</div>
                       </motion.div>
@@ -239,13 +233,13 @@ addPropertyControls(FAQ, {
 
   showDivider: { type: ControlType.Boolean, title: "Divider", defaultValue: true, enabledTitle: "Show", disabledTitle: "Hide" },
   dividerColor: { type: ControlType.Color, title: "Divider Color", defaultValue: "#E5E7EB" },
-  dividerThickness: { type: ControlType.Number, title: "Divider Thickness", defaultValue: 1, min: 1, max: 8, step: 1, unit: "px", hidden: (p:any)=>!p.showDivider },
+  dividerThickness: { type: ControlType.Number, title: "Divider Thickness", defaultValue: 1, min: 1, max: 8, step: 1, unit: "px", hidden: (p: any) => !p.showDivider },
 
   questionStyle: {
     type: ControlType.Object,
     title: "Question Style",
     controls: {
-  fontSize: { type: ControlType.Number, title: "Size", defaultValue: 28, min: 12, max: 72, step: 1, unit: "px" },
+      fontSize: { type: ControlType.Number, title: "Size", defaultValue: 28, min: 12, max: 72, step: 1, unit: "px" },
       lineHeight: { type: ControlType.Number, title: "Line", defaultValue: 1.2, min: 0.8, max: 2, step: 0.1 },
       letterSpacing: { type: ControlType.Number, title: "Tracking", defaultValue: 0, min: -3, max: 6, step: 0.1, unit: "px" }
     }
@@ -254,23 +248,48 @@ addPropertyControls(FAQ, {
     type: ControlType.Object,
     title: "Answer Style",
     controls: {
-  fontSize: { type: ControlType.Number, title: "Size", defaultValue: 16, min: 10, max: 48, step: 1, unit: "px" },
+      fontSize: { type: ControlType.Number, title: "Size", defaultValue: 16, min: 10, max: 48, step: 1, unit: "px" },
       lineHeight: { type: ControlType.Number, title: "Line", defaultValue: 1.5, min: 0.8, max: 2.4, step: 0.1 },
       letterSpacing: { type: ControlType.Number, title: "Tracking", defaultValue: 0, min: -3, max: 6, step: 0.1, unit: "px" }
     }
   },
   questionFont: {
     type: ControlType.Font,
-  title: "Question Font"
+    title: "Question Font",
+    defaultValue: {
+      fontFamily: "Inter",
+      fontWeight: 700,
+      fontStyle: "normal",
+    },
   },
   answerFont: {
     type: ControlType.Font,
-  title: "Answer Font"
+    title: "Answer Font",
+    defaultValue: {
+      fontFamily: "Inter",
+      fontWeight: 400,
+      fontStyle: "normal",
+    },
   },
   questionColor: { type: ControlType.Color, title: "Q Color", defaultValue: "#000000" },
   answerColor: { type: ControlType.Color, title: "A Color", defaultValue: "#4B5563" },
-  // answerAlign control removed (always left)
+  questionAlign: {
+    type: ControlType.Enum,
+    title: "Q Align",
+    options: ["left", "center", "right"],
+    optionTitles: ["Left", "Center", "Right"],
+    defaultValue: "left",
+    displaySegmentedControl: true
+  },
+  answerAlign: {
+    type: ControlType.Enum,
+    title: "A Align",
+    options: ["left", "center", "right"],
+    optionTitles: ["Left", "Center", "Right"],
+    defaultValue: "left",
+    displaySegmentedControl: true
+  },
 
-  iconType: { type: ControlType.Enum, title: "Icon", options: ["plusminus","lines","chevron"], optionTitles: ["Plus","Lines","Chevron"], defaultValue: "plusminus" },
+  iconType: { type: ControlType.Enum, title: "Icon", options: ["plusminus", "lines", "chevron"], optionTitles: ["Plus", "Lines", "Chevron"], defaultValue: "plusminus" },
   iconSize: { type: ControlType.Number, title: "Icon Size", defaultValue: 28, min: 12, max: 80, step: 2, unit: "px" }
 })

@@ -41,22 +41,31 @@ interface HoverImageSectionProps {
   useGradient: boolean
 
   // Heading style
-  headingFontFamily: string
+  headingFont: {
+    fontFamily: string
+    fontWeight: string | number
+    fontStyle: string
+  }
   headingSize: number
-  headingWeight: number | string
   headingColor: string
+  headingLetterSpacing: number
+  headingLineHeight: number
 
   // Content style
-  contentFontFamily: string
+  contentFont: {
+    fontFamily: string
+    fontWeight: string | number
+    fontStyle: string
+  }
   contentSize: number
-  contentWeight: number | string
   contentColor: string
+  contentLetterSpacing: number
+  contentLineHeight: number
 
   // Hover motion (internal default)
   hoverScale: number
 
-  // Typography source
-  useProjectFonts: boolean
+
 
   // Image fill and elastic hover
   enableElastic: boolean
@@ -117,9 +126,9 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
     alignX = "left",
     alignY = "bottom",
     textMaxWidth = 720,
-  panelGap = -1,
-  textGap = 12,
-  backgroundColor = "#000000",
+    panelGap = -1,
+    textGap = 12,
+    backgroundColor = "#000000",
 
     // Overlay
     overlayColor = "#000000",
@@ -128,22 +137,31 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
     useGradient = true,
 
     // Heading style
-    headingFontFamily = "Inter, system-ui, sans-serif",
+    headingFont = {
+      fontFamily: "Inter",
+      fontWeight: 700,
+      fontStyle: "normal",
+    },
     headingSize = 48,
-    headingWeight = 700,
     headingColor = "#FFFFFF",
+    headingLetterSpacing = -1,
+    headingLineHeight = 1.1,
 
     // Content style
-    contentFontFamily = "Inter, system-ui, sans-serif",
+    contentFont = {
+      fontFamily: "Inter",
+      fontWeight: 400,
+      fontStyle: "normal",
+    },
     contentSize = 18,
-    contentWeight = 400,
     contentColor = "#FFFFFF",
+    contentLetterSpacing = 0,
+    contentLineHeight = 1.6,
 
     // Hover
     hoverScale = 1.02,
 
-    // Typography source
-    useProjectFonts = true,
+
 
     // Image fill and elastic
     enableElastic = true,
@@ -152,16 +170,16 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
     elasticStiffness = 180,
     elasticDamping = 18,
 
-  // Responsive / Mobile
-  viewMode = "auto",
-  mobileBreakpoint = 640,
-  mobileShowDots = true,
-  mobileDotColor = "rgba(255,255,255,0.45)",
-  mobileActiveDotColor = "#FFFFFF",
+    // Responsive / Mobile
+    viewMode = "auto",
+    mobileBreakpoint = 640,
+    mobileShowDots = true,
+    mobileDotColor = "rgba(255,255,255,0.45)",
+    mobileActiveDotColor = "#FFFFFF",
 
-  // Arrow
-  showArrow = true,
-  arrowSize = 48,
+    // Arrow
+    showArrow = true,
+    arrowSize = 48,
   } = props
 
   // Items to render
@@ -194,12 +212,14 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
   const headingBaseStyle: React.CSSProperties = {
     color: headingColor,
     margin: 0,
-  // Inherit from project/site so Code Component matches Framer typography by default
-  fontFamily: useProjectFonts ? ("inherit" as any) : (headingFontFamily as any),
+    // Inherit from project/site so Code Component matches Framer typography by default
+    fontFamily: headingFont.fontFamily,
     fontSize: headingSize,
-    fontWeight: headingWeight as any,
-    lineHeight: 1.1,
-  textAlign: "center" as any,
+    fontWeight: headingFont.fontWeight,
+    fontStyle: headingFont.fontStyle,
+    lineHeight: headingLineHeight,
+    letterSpacing: headingLetterSpacing,
+    textAlign: "center" as any,
   }
 
   // Width distribution for hover-accordion
@@ -233,9 +253,9 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
         overflow: "hidden",
         position: "relative",
         display: "flex",
-  backgroundColor,
-  // Prevent subpixel seams from showing as bars
-  outline: "1px solid rgba(0,0,0,0.001)",
+        backgroundColor,
+        // Prevent subpixel seams from showing as bars
+        outline: "1px solid rgba(0,0,0,0.001)",
       }}
       onMouseLeave={handleMouseLeave}
       onHoverStart={() => !isMobile && setIsHover(true)}
@@ -355,11 +375,13 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
                         style={{
                           marginTop: textGap,
                           marginBottom: 0,
-                          fontFamily: useProjectFonts ? ("inherit" as any) : (contentFontFamily as any),
+                          fontFamily: contentFont.fontFamily,
                           fontSize: contentSize,
-                          fontWeight: contentWeight as any,
+                          fontWeight: contentFont.fontWeight,
+                          fontStyle: contentFont.fontStyle,
                           color: contentColor,
-                          lineHeight: 1.6,
+                          lineHeight: contentLineHeight,
+                          letterSpacing: contentLetterSpacing,
                           textAlign: "center" as any,
                         }}
                         initial={{ opacity: 0, x: enterX, y: 6 }}
@@ -564,7 +586,8 @@ export default function HoverImageSection(props: Partial<HoverImageSectionProps>
                             fontSize: contentSize,
                             fontWeight: contentWeight as any,
                             color: contentColor,
-                            lineHeight: 1.6,
+                            lineHeight: contentLineHeight,
+                            letterSpacing: contentLetterSpacing,
                             textAlign: "center" as any,
                           }}
                           initial={{ opacity: 0, y: 8 }}
@@ -614,8 +637,8 @@ HoverImageSection.defaultProps = {
   content: "Add some engaging content that describes this image or feature. Keep it concise.",
   contentItems: [],
   padding: 32,
-  alignX: "left",
-  alignY: "bottom",
+  alignX: "left" as const,
+  alignY: "bottom" as const,
   textMaxWidth: 720,
   panelGap: -1,
   textGap: 12,
@@ -623,17 +646,29 @@ HoverImageSection.defaultProps = {
   overlayColor: "#000000",
   overlayOpacity: 0.2,
   useGradient: true,
-  headingFontFamily: "Inter, system-ui, sans-serif",
+  overlayOpacity: 0.2,
+  useGradient: true,
+  headingFont: {
+    fontFamily: "Inter",
+    fontWeight: 700,
+    fontStyle: "normal",
+  },
   headingSize: 48,
-  headingWeight: 700,
   headingColor: "#FFFFFF",
-  contentFontFamily: "Inter, system-ui, sans-serif",
+  contentFont: {
+    fontFamily: "Inter",
+    fontWeight: 400,
+    fontStyle: "normal",
+  },
   contentSize: 18,
-  contentWeight: 400,
   contentColor: "#FFFFFF",
+  headingLetterSpacing: -1,
+  headingLineHeight: 1.1,
+  contentLetterSpacing: 0,
+  contentLineHeight: 1.6,
   hoverScale: 1.02,
-  useProjectFonts: true,
-  viewMode: "auto",
+
+  viewMode: "auto" as const,
   mobileBreakpoint: 640,
   mobileShowDots: true,
   mobileDotColor: "rgba(255,255,255,0.45)",
@@ -670,9 +705,9 @@ addPropertyControls(HoverImageSection, {
   },
 
   // Fallback single content for simple cases
-  heading: { type: ControlType.String, title: "Heading", hidden(props: any){ return (props.contentItems?.length ?? 0) > 0 } },
-  content: { type: ControlType.String, title: "Content", displayTextArea: true, hidden(props: any){ return (props.contentItems?.length ?? 0) > 0 } },
-  image: { type: ControlType.ResponsiveImage, title: "Image (Fallback)", hidden(props: any){ return (props.contentItems?.length ?? 0) > 0 } },
+  heading: { type: ControlType.String, title: "Heading", hidden(props: any) { return (props.contentItems?.length ?? 0) > 0 } },
+  content: { type: ControlType.String, title: "Content", displayTextArea: true, hidden(props: any) { return (props.contentItems?.length ?? 0) > 0 } },
+  image: { type: ControlType.ResponsiveImage, title: "Image (Fallback)", hidden(props: any) { return (props.contentItems?.length ?? 0) > 0 } },
 
   // Layout
   alignX: {
@@ -715,27 +750,48 @@ addPropertyControls(HoverImageSection, {
     hidden(props: any) { return props.viewMode !== "auto" }
   },
   mobileShowDots: { type: ControlType.Boolean, title: "Dots (Mobile)", defaultValue: true },
-  mobileDotColor: { type: ControlType.Color, title: "Dot", hidden(props: any){ return !props.mobileShowDots } },
-  mobileActiveDotColor: { type: ControlType.Color, title: "Dot Active", hidden(props: any){ return !props.mobileShowDots } },
+  mobileDotColor: { type: ControlType.Color, title: "Dot", hidden(props: any) { return !props.mobileShowDots } },
+  mobileActiveDotColor: { type: ControlType.Color, title: "Dot Active", hidden(props: any) { return !props.mobileShowDots } },
 
   // Arrow
   showArrow: { type: ControlType.Boolean, title: "Show Arrow", defaultValue: true },
-  arrowSize: { type: ControlType.Number, title: "Arrow Size", min: 16, max: 96, step: 1, unit: "px", hidden(props: any){ return !props.showArrow } },
+  arrowSize: { type: ControlType.Number, title: "Arrow Size", min: 16, max: 96, step: 1, unit: "px", hidden(props: any) { return !props.showArrow } },
 
   // Overlay (kept simple)
   overlayColor: { type: ControlType.Color, title: "Overlay Color" },
+  overlayColor: { type: ControlType.Color, title: "Overlay Color" },
   overlayOpacity: { type: ControlType.Number, title: "Overlay Opacity", min: 0, max: 1, step: 0.05, defaultValue: 0.2 },
+  hoverOverlayOpacity: { type: ControlType.Number, title: "Hover Opacity", min: 0, max: 1, step: 0.05 },
+  useGradient: { type: ControlType.Boolean, title: "Use Gradient", defaultValue: true },
+  hoverScale: { type: ControlType.Number, title: "Hover Scale", min: 1, max: 1.2, step: 0.01, defaultValue: 1.02 },
 
   // Elastic image fill is now always on with sensible defaults (no exposed controls)
 
   // Typography (minimal)
-  useProjectFonts: { type: ControlType.Boolean, title: "Use Project Font", defaultValue: true },
-  headingFontFamily: { type: ControlType.String, title: "Heading Font", hidden(props: any){ return !!props.useProjectFonts } },
+  headingFont: {
+    type: ControlType.Font,
+    title: "Heading Font",
+    defaultValue: {
+      fontFamily: "Inter",
+      fontWeight: 700,
+      fontStyle: "normal",
+    },
+  },
   headingSize: { type: ControlType.Number, title: "Heading Size", min: 12, max: 96, step: 1, unit: "px" },
-  headingWeight: { type: ControlType.Number, title: "Heading Weight", min: 100, max: 900, step: 100 },
   headingColor: { type: ControlType.Color, title: "Heading Color" },
-  contentFontFamily: { type: ControlType.String, title: "Content Font", hidden(props: any){ return !!props.useProjectFonts } },
+  headingLineHeight: { type: ControlType.Number, title: "Head Line Ht", min: 0.8, max: 2, step: 0.1, defaultValue: 1.1 },
+  headingLetterSpacing: { type: ControlType.Number, title: "Head Spacing", min: -5, max: 10, step: 0.1, defaultValue: -1 },
+  contentFont: {
+    type: ControlType.Font,
+    title: "Content Font",
+    defaultValue: {
+      fontFamily: "Inter",
+      fontWeight: 400,
+      fontStyle: "normal",
+    },
+  },
   contentSize: { type: ControlType.Number, title: "Content Size", min: 10, max: 36, step: 1, unit: "px" },
-  contentWeight: { type: ControlType.Number, title: "Content Weight", min: 100, max: 900, step: 100 },
   contentColor: { type: ControlType.Color, title: "Content Color" },
+  contentLineHeight: { type: ControlType.Number, title: "Cont Line Ht", min: 0.8, max: 2, step: 0.1, defaultValue: 1.6 },
+  contentLetterSpacing: { type: ControlType.Number, title: "Cont Spacing", min: -5, max: 10, step: 0.1, defaultValue: 0 },
 })

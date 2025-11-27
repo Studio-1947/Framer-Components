@@ -8,7 +8,13 @@ interface CircularTextProps {
     text: string
     speed: number
     direction: "clockwise" | "counterclockwise"
-    font: any
+    font: {
+        fontFamily: string
+        fontWeight: string | number
+        fontStyle: string
+    }
+    fontSize: number
+    letterSpacing: number
     textColor: string
     radius: number
     circleSize: number
@@ -26,13 +32,15 @@ interface CircularTextProps {
  */
 export default function CircularText(props: CircularTextProps) {
     const {
-        text,
-        speed,
-        direction,
-        font,
-        textColor,
-        radius,
-        circleSize,
+        text = "Circular Text",
+        speed = 1,
+        direction = "clockwise",
+        font = { fontFamily: "Inter", fontWeight: 600, fontStyle: "normal" },
+        fontSize = 22,
+        letterSpacing = 0,
+        textColor = "#000000",
+        radius = 100,
+        circleSize = 300,
         style,
     } = props
     const [angle, setAngle] = useState(0)
@@ -106,7 +114,6 @@ export default function CircularText(props: CircularTextProps) {
                 aria-label={text}
             >
                 {chars.map((char, i) => {
-                    const fontSize = typeof font?.fontSize === "number" ? font.fontSize : 22
                     // Evenly distribute by angle; apply spacing only in glyph styling
                     const baseStepDeg = 360 / chars.length
                     const theta = baseStepDeg * i + angle
@@ -114,16 +121,16 @@ export default function CircularText(props: CircularTextProps) {
                     const x = center + effectiveRadius * Math.cos(rad)
                     const y = center + effectiveRadius * Math.sin(rad)
                     // Safe font fallbacks to handle various Framer Font control shapes
-                    const fontWeight = font?.fontWeight ?? font?.weight
-                    const fontFamily = font?.fontFamily
+                    const fontWeight = font.fontWeight
+                    const fontFamily = font.fontFamily
                     // Smart clamp letterSpacing so glyph width + spacing fits per-character arc
-                    const inputSpacingPx = spacingToPx(font?.letterSpacing, fontSize)
+                    const inputSpacingPx = letterSpacing
                     const perCharArcPx = (circumference || 1) / chars.length
                     const avgCharWidthPx = 0.6 * fontSize
                     const maxSpacingPx = Math.max(-0.5 * avgCharWidthPx, perCharArcPx - avgCharWidthPx)
                     const minSpacingPx = -0.4 * fontSize
-                    const letterSpacing = Math.max(minSpacingPx, Math.min(maxSpacingPx, inputSpacingPx))
-                    const fontStyle = font?.fontStyle
+                    const finalLetterSpacing = Math.max(minSpacingPx, Math.min(maxSpacingPx, inputSpacingPx))
+                    const fontStyle = font.fontStyle
                     return (
                         <text
                             key={i}
@@ -138,7 +145,7 @@ export default function CircularText(props: CircularTextProps) {
                                 fontSize,
                                 fontWeight,
                                 fontFamily,
-                                letterSpacing,
+                                letterSpacing: finalLetterSpacing,
                                 fontStyle,
                             }}
                             transform={`rotate(${theta + 90} ${x} ${y})`}
@@ -150,6 +157,18 @@ export default function CircularText(props: CircularTextProps) {
             </svg>
         </motion.div>
     )
+}
+
+CircularText.defaultProps = {
+    text: "Circular Text",
+    speed: 1,
+    direction: "clockwise" as const,
+    font: { fontFamily: "Inter", fontWeight: 600, fontStyle: "normal" },
+    fontSize: 22,
+    letterSpacing: 0,
+    textColor: "#000000",
+    radius: 100,
+    circleSize: 300,
 }
 
 addPropertyControls(CircularText, {
@@ -178,13 +197,29 @@ addPropertyControls(CircularText, {
     font: {
         type: ControlType.Font,
         title: "Font",
-        controls: "extended",
-        defaultFontType: "sans-serif",
         defaultValue: {
-            fontSize: 22,
-            letterSpacing: "0.02em",
-            lineHeight: "1em",
+            fontFamily: "Inter",
+            fontWeight: 600,
+            systemFont: true,
         },
+    },
+    fontSize: {
+        type: ControlType.Number,
+        title: "Font Size",
+        defaultValue: 22,
+        min: 10,
+        max: 100,
+        step: 1,
+        unit: "px",
+    },
+    letterSpacing: {
+        type: ControlType.Number,
+        title: "Letter Spacing",
+        defaultValue: 0,
+        min: -5,
+        max: 20,
+        step: 0.1,
+        unit: "px",
     },
     textColor: {
         type: ControlType.Color,

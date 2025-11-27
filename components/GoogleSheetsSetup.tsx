@@ -7,7 +7,12 @@ interface GoogleSheetsSetupProps {
     backgroundColor: string
     textColor: string
     fontSize: number
-    useProjectFonts?: boolean
+    font: {
+        fontFamily: string
+        fontWeight: string | number
+        fontStyle: string
+    }
+    textAlign: "left" | "center" | "right"
 }
 
 export default function GoogleSheetsSetup(props: GoogleSheetsSetupProps) {
@@ -19,7 +24,10 @@ export default function GoogleSheetsSetup(props: GoogleSheetsSetupProps) {
         backgroundColor: props.backgroundColor,
         color: props.textColor,
         fontSize: props.fontSize,
-        fontFamily: props.useProjectFonts ? ("inherit" as any) : ("Inter, system-ui, sans-serif" as any),
+        fontFamily: props.font.fontFamily,
+        fontWeight: props.font.fontWeight,
+        fontStyle: props.font.fontStyle,
+        textAlign: props.textAlign,
         padding: "20px",
         borderRadius: "8px",
         lineHeight: 1.6,
@@ -51,7 +59,7 @@ export default function GoogleSheetsSetup(props: GoogleSheetsSetupProps) {
     const renderPublicInstructions = () => (
         <div>
             <h3 style={headingStyle}>📊 Setting up Public Google Sheets</h3>
-            
+
             <div style={stepStyle}>
                 <strong>Step 1:</strong> Create your Google Sheet with data
                 <ul style={{ marginTop: "8px", paddingLeft: "20px" }}>
@@ -89,7 +97,7 @@ export default function GoogleSheetsSetup(props: GoogleSheetsSetupProps) {
     const renderPrivateInstructions = () => (
         <div>
             <h3 style={headingStyle}>🔐 Setting up Private Google Sheets with API</h3>
-            
+
             <div style={stepStyle}>
                 <strong>Step 1:</strong> Enable Google Sheets API
                 <ul style={{ marginTop: "8px", paddingLeft: "20px" }}>
@@ -128,7 +136,7 @@ export default function GoogleSheetsSetup(props: GoogleSheetsSetupProps) {
             {renderPublicInstructions()}
             <div style={{ height: "20px" }} />
             {renderPrivateInstructions()}
-            
+
             <div style={{ ...stepStyle, backgroundColor: "#f0fdf4", padding: "12px", borderRadius: "6px", border: "1px solid #22c55e", marginTop: "20px" }}>
                 <strong>✅ Quick Start:</strong> For testing and demos, use a public sheet (no API key needed). For production with sensitive data, use the API method.
             </div>
@@ -146,18 +154,27 @@ export default function GoogleSheetsSetup(props: GoogleSheetsSetupProps) {
 
 GoogleSheetsSetup.defaultProps = {
     showInstructions: true,
-    instructionType: "both",
+    instructionType: "both" as const,
     backgroundColor: "#ffffff",
     textColor: "#374151",
     fontSize: 14,
-    useProjectFonts: true
+    font: {
+        fontFamily: "Inter",
+        fontWeight: 400,
+        fontStyle: "normal",
+    },
+    textAlign: "left" as const
 }
 
 addPropertyControls(GoogleSheetsSetup, {
-    useProjectFonts: {
-        type: ControlType.Boolean,
-        title: "Use Project Font",
-        defaultValue: true
+    font: {
+        type: ControlType.Font,
+        title: "Font",
+        defaultValue: {
+            fontFamily: "Inter",
+            fontWeight: 400,
+            fontStyle: "normal",
+        },
     },
     showInstructions: {
         type: ControlType.Boolean,
@@ -189,5 +206,13 @@ addPropertyControls(GoogleSheetsSetup, {
         step: 1,
         unit: "px",
         defaultValue: 14
+    },
+    textAlign: {
+        type: ControlType.Enum,
+        title: "Text Align",
+        options: ["left", "center", "right"],
+        optionTitles: ["Left", "Center", "Right"],
+        defaultValue: "left",
+        displaySegmentedControl: true
     }
 })

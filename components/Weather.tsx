@@ -9,14 +9,13 @@ interface WeatherProps {
         latitude: number
         longitude: number
         refreshInterval: number
-        font?: {
-            fontSize?: number
-            fontFamily?: string
-            fontWeight?: number | string
-            fontStyle?: string
-            letterSpacing?: string | number
-            lineHeight?: string | number
+        font: {
+            fontFamily: string
+            fontWeight: string | number
+            fontStyle: string
         }
+        letterSpacing: number
+        lineHeight: number
         fontSize: number
     }
     fontSettings?: {
@@ -30,14 +29,13 @@ interface WeatherProps {
         }
         fontSize: number
         tempFontSize: number
-        labelFont?: {
-            fontSize?: number
-            fontFamily?: string
-            fontWeight?: number | string
-            fontStyle?: string
-            letterSpacing?: string | number
-            lineHeight?: string | number
+        labelFont: {
+            fontFamily: string
+            fontWeight: string | number
+            fontStyle: string
         }
+        labelLetterSpacing: number
+        labelLineHeight: number
         labelFontSize: number
         labelColor: string
     }
@@ -47,7 +45,9 @@ interface WeatherProps {
         borderColor: string
         borderRadius: number
         padding: number
+
         gap: number
+        alignment: "left" | "center" | "right"
     }
     // Keep backward compatibility with direct props
     location?: string
@@ -59,19 +59,13 @@ interface WeatherProps {
     borderRadius?: number
     padding?: number
     gap?: number
+    alignment?: "left" | "center" | "right"
     fontSize?: number
     tempFontSize?: number
     labelColor?: string
     labelFontSize?: number
     refreshInterval?: number
-    font?: {
-        fontSize?: number
-        fontFamily?: string
-        fontWeight?: number | string
-        fontStyle?: string
-        letterSpacing?: string | number
-        lineHeight?: string | number
-    }
+
 }
 
 interface WeatherData {
@@ -95,20 +89,21 @@ export default function Weather(props: WeatherProps) {
     const getLatitude = () => props.locationSettings?.latitude || props.latitude || 26.888169444444443
     const getLongitude = () => props.locationSettings?.longitude || props.longitude || 88.19006944444445
     const getRefreshInterval = () => props.locationSettings?.refreshInterval || props.refreshInterval || 3600
-    
-    const getFont = () => props.locationSettings?.font || props.fontSettings?.font || props.font || {}
+
+    const getFont = () => props.locationSettings?.font || { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" }
     const getTempFontSize = () => props.fontSettings?.tempFontSize || props.tempFontSize || 26
-    const getLabelFont = () => props.fontSettings?.labelFont || {}
+    const getLabelFont = () => props.fontSettings?.labelFont || { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" }
     const getLabelColor = () => props.fontSettings?.labelColor || props.labelColor || "#6b7280"
-    
+
     const getBackgroundColor = () => props.styling?.backgroundColor || props.backgroundColor || "transparent"
     const getTextColor = () => props.styling?.textColor || props.textColor || "#111827"
     const getBorderColor = () => props.styling?.borderColor || props.borderColor || "#E5E7EB"
     const getBorderRadius = () => props.styling?.borderRadius || props.borderRadius || 0
     const getPadding = () => props.styling?.padding || props.padding || 0
     const getGap = () => props.styling?.gap || props.gap || 16
+    const getAlignment = () => props.styling?.alignment || props.alignment || "left"
     // #endregion
-    
+
     // #region State and Logic
     const [weatherData, setWeatherData] = useState<WeatherData>({
         temperature: null,
@@ -188,38 +183,56 @@ export default function Weather(props: WeatherProps) {
         borderRadius: "0px",
         minWidth: "220px",
         lineHeight: "1.45",
-        ...baseFont, // Apply font LAST so it doesn't get overridden
+        alignItems: getAlignment() === "center" ? "center" : getAlignment() === "right" ? "flex-end" : "flex-start",
+        textAlign: getAlignment() as any,
+        fontFamily: baseFont.fontFamily,
+        fontWeight: baseFont.fontWeight,
+        fontStyle: baseFont.fontStyle,
+        fontSize: props.locationSettings?.fontSize || 14,
+        letterSpacing: props.locationSettings?.letterSpacing || 0,
+        lineHeight: props.locationSettings?.lineHeight || 1.45,
     }
 
     const locationStyle: React.CSSProperties = {
-        textAlign: "left",
+        textAlign: getAlignment() as any,
         marginTop: "4px",
         fontWeight: 600, // Keep location weight as 600
         color: getLabelColor(), // Use label color for location text
-        ...labelFont, // Use label font for location text
+        fontFamily: labelFont.fontFamily,
+        fontWeight: labelFont.fontWeight,
+        fontStyle: labelFont.fontStyle,
+        fontSize: props.fontSettings?.labelFontSize || 11,
+        letterSpacing: props.fontSettings?.labelLetterSpacing || 0,
+        lineHeight: props.fontSettings?.labelLineHeight || 1.2,
     }
 
     const dataContainerStyle: React.CSSProperties = {
         display: "flex",
-        justifyContent: "flex-start",
+        justifyContent: getAlignment() === "center" ? "center" : getAlignment() === "right" ? "flex-end" : "flex-start",
         alignItems: "center",
         gap: "18px",
     }
 
     const metricStyle: React.CSSProperties = {
-        textAlign: "left",
+        textAlign: getAlignment() as any,
         flex: 1,
     }
 
     const valueStyle: React.CSSProperties = {
         fontSize: getTempFontSize(),
         fontWeight: 800, // Keep temperature values as 800 weight
-        ...baseFont, // Apply base font but allow overrides above
+        fontFamily: baseFont.fontFamily,
+        fontStyle: baseFont.fontStyle,
     }
 
     const labelStyle: React.CSSProperties = {
         color: getLabelColor(),
-        ...labelFont, // Apply label font LAST so it doesn't get overridden
+        fontFamily: labelFont.fontFamily,
+        fontWeight: labelFont.fontWeight,
+        fontStyle: labelFont.fontStyle,
+        fontSize: props.fontSettings?.labelFontSize || 11,
+        letterSpacing: props.fontSettings?.labelLetterSpacing || 0,
+        lineHeight: props.fontSettings?.labelLineHeight || 1.2,
     }
 
     const dividerStyle: React.CSSProperties = {
@@ -282,128 +295,183 @@ export default function Weather(props: WeatherProps) {
 
 // #region Property Controls
 Weather.defaultProps = {
-  location: "Mirik, Darjeeling",
-  latitude: 26.888169444444443,
-  longitude: 88.19006944444445,
-  backgroundColor: "transparent",
-  textColor: "#111827",
-  borderColor: "#E5E7EB",
-  borderRadius: 0,
-  padding: 0,
-  gap: 16,
-  fontSize: 14,
-  tempFontSize: 26,
-  labelColor: "#6b7280",
-  labelFontSize: 11,
-  refreshInterval: 3600, // seconds (1 hour)
+    location: "Mirik, Darjeeling",
+    latitude: 26.888169444444443,
+    longitude: 88.19006944444445,
+    backgroundColor: "transparent",
+    textColor: "#111827",
+    borderColor: "#E5E7EB",
+    borderRadius: 0,
+    padding: 0,
+
+    gap: 16,
+    alignment: "left" as const,
+    fontSize: 14,
+    tempFontSize: 26,
+    labelColor: "#6b7280",
+    labelFontSize: 11,
+    refreshInterval: 3600, // seconds (1 hour)
 }
 
 addPropertyControls(Weather, {
-  locationSettings: {
-    type: ControlType.Object,
-    title: "Location & Settings",
-    controls: {
-      location: {
-        type: ControlType.String,
-        title: "Location",
-        defaultValue: "Mirik, Darjeeling",
-      },
-      latitude: {
-        type: ControlType.Number,
-        title: "Latitude",
-        defaultValue: 26.888169444444443,
-        step: 0.000001,
-        displayStepper: true,
-      },
-      longitude: {
-        type: ControlType.Number,
-        title: "Longitude",
-        defaultValue: 88.19006944444445,
-        step: 0.000001,
-        displayStepper: true,
-      },
-      refreshInterval: {
-        type: ControlType.Number,
-        title: "Refresh Interval (seconds)",
-        defaultValue: 3600,
-        min: 0,
-        max: 86400,
-        step: 60,
-        displayStepper: true,
-      },
-      font: {
-        type: ControlType.Font,
-        title: "Font",
-        controls: "extended",
-        defaultFontType: "sans-serif",
-        defaultValue: {
-          fontSize: 14,
-          letterSpacing: "0em",
-          lineHeight: "1.45em",
+    locationSettings: {
+        type: ControlType.Object,
+        title: "Location & Settings",
+        controls: {
+            location: {
+                type: ControlType.String,
+                title: "Location",
+                defaultValue: "Mirik, Darjeeling",
+            },
+            latitude: {
+                type: ControlType.Number,
+                title: "Latitude",
+                defaultValue: 26.888169444444443,
+                step: 0.000001,
+                displayStepper: true,
+            },
+            longitude: {
+                type: ControlType.Number,
+                title: "Longitude",
+                defaultValue: 88.19006944444445,
+                step: 0.000001,
+                displayStepper: true,
+            },
+            refreshInterval: {
+                type: ControlType.Number,
+                title: "Refresh Interval (seconds)",
+                defaultValue: 3600,
+                min: 0,
+                max: 86400,
+                step: 60,
+                displayStepper: true,
+            },
+            font: {
+                type: ControlType.Font,
+                title: "Font",
+                defaultValue: {
+                    fontFamily: "Inter",
+                    fontWeight: 400,
+                    fontStyle: "normal",
+                },
+            },
+            fontSize: {
+                type: ControlType.Number,
+                title: "Font Size",
+                defaultValue: 14,
+                min: 8,
+                max: 48,
+                step: 1,
+            },
+            letterSpacing: {
+                type: ControlType.Number,
+                title: "Letter Spacing",
+                defaultValue: 0,
+                min: -5,
+                max: 10,
+                step: 0.1,
+            },
+            lineHeight: {
+                type: ControlType.Number,
+                title: "Line Height",
+                defaultValue: 1.45,
+                min: 0.8,
+                max: 2,
+                step: 0.1,
+            },
         },
-      },
     },
-  },
-  fontSettings: {
-    type: ControlType.Object,
-    title: "Typography",
-    controls: {
-      tempFontSize: {
-        type: ControlType.Number,
-        title: "Temperature Font Size",
-        defaultValue: 26,
-        min: 12,
-        max: 48,
-        step: 1,
-        displayStepper: true,
-      },
-      labelFont: {
-        type: ControlType.Font,
-        title: "Label Font",
-        controls: "extended",
-        defaultFontType: "sans-serif",
-        defaultValue: {
-          fontSize: 11,
-          letterSpacing: "0em",
-          lineHeight: "1.2em",
+    fontSettings: {
+        type: ControlType.Object,
+        title: "Typography",
+        controls: {
+            tempFontSize: {
+                type: ControlType.Number,
+                title: "Temperature Font Size",
+                defaultValue: 26,
+                min: 12,
+                max: 48,
+                step: 1,
+                displayStepper: true,
+            },
+            labelFont: {
+                type: ControlType.Font,
+                title: "Label Font",
+                defaultValue: {
+                    fontFamily: "Inter",
+                    fontWeight: 400,
+                    fontStyle: "normal",
+                },
+            },
+            labelFontSize: {
+                type: ControlType.Number,
+                title: "Label Size",
+                defaultValue: 11,
+                min: 8,
+                max: 32,
+                step: 1,
+            },
+            labelLetterSpacing: {
+                type: ControlType.Number,
+                title: "Label Spacing",
+                defaultValue: 0,
+                min: -5,
+                max: 10,
+                step: 0.1,
+            },
+            labelLineHeight: {
+                type: ControlType.Number,
+                title: "Label Line Ht",
+                defaultValue: 1.2,
+                min: 0.8,
+                max: 2,
+                step: 0.1,
+            },
+            labelColor: {
+                type: ControlType.Color,
+                title: "Label Color",
+                defaultValue: "#6b7280",
+            },
         },
-      },
-      labelColor: {
-        type: ControlType.Color,
-        title: "Label Color",
-        defaultValue: "#6b7280",
-      },
     },
-  },
-  styling: {
-    type: ControlType.Object,
-    title: "Styling",
-    controls: {
-      textColor: {
-        type: ControlType.Color,
-        title: "Text Color",
-        defaultValue: "#111827",
-      },
-      padding: {
-        type: ControlType.Number,
-        title: "Padding",
-        defaultValue: 0,
-        min: 0,
-        max: 50,
-        step: 1,
-        displayStepper: true,
-      },
-      gap: {
-        type: ControlType.Number,
-        title: "Gap",
-        defaultValue: 16,
-        min: 0,
-        max: 50,
-        step: 1,
-        displayStepper: true,
-      },
+    styling: {
+        type: ControlType.Object,
+        title: "Styling",
+        controls: {
+            textColor: {
+                type: ControlType.Color,
+                title: "Text Color",
+                defaultValue: "#111827",
+            },
+            padding: {
+                type: ControlType.Number,
+                title: "Padding",
+                defaultValue: 0,
+                min: 0,
+                max: 50,
+                step: 1,
+                displayStepper: true,
+            },
+            gap: {
+                type: ControlType.Number,
+                title: "Gap",
+                defaultValue: 16,
+                min: 0,
+                max: 50,
+                step: 1,
+
+                displayStepper: true,
+            },
+            alignment: {
+                type: ControlType.Enum,
+                title: "Alignment",
+                options: ["left", "center", "right"],
+                optionTitles: ["Left", "Center", "Right"],
+                defaultValue: "left",
+                displaySegmentedControl: true,
+            },
+        },
     },
-  },
 })
 
 Weather.displayName = "Weather"
