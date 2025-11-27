@@ -1,203 +1,278 @@
-// Animated counter component that counts from 0 to a target number with optional symbol (e.g., + or %)
-import {
-    useState,
-    useEffect,
-    useRef,
-    startTransition,
-    type CSSProperties,
-} from "react"
+import React, { useState, useEffect, useRef } from "react"
+import { motion } from "framer-motion"
 import { addPropertyControls, ControlType } from "framer"
-import { useInView } from "framer-motion"
 
-interface CounterProps {
-    targetNumber: number
-    duration: number
-    showPrefix: boolean
-    prefixType: "+" | "%"
-    font: any
-    textColor: string
-    autoStart: boolean
-    style?: CSSProperties
+const CounterStyles = {
+    container: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+    },
 }
 
-/**
- * @framerSupportedLayoutWidth auto
- * @framerSupportedLayoutHeight auto
- */
-export default function Counter(props: CounterProps) {
+export function Counter(props) {
     const {
-        targetNumber = 100,
-        duration = 2000,
-        showPrefix = false,
-        prefixType = "+",
-        font,
-        textColor = "#000000",
-        autoStart = true,
+        start,
+        end,
+        speed,
+        gapSize,
+        prefixText,
+        suffixText,
+        prefixFont,
+        suffixFont,
+        prefixColor,
+        suffixColor,
+        loop,
+        decimalSeparatorType,
+        textSize,
+        selectedFont,
+        textColor,
+        startOnViewport,
+        restartOnViewport,
+        incrementType,
     } = props
 
-    const [currentNumber, setCurrentNumber] = useState(0)
-    const animationRef = useRef<number | undefined>(undefined)
-    const startTimeRef = useRef<number | undefined>(undefined)
-    const isStatic = typeof window === "undefined"
-    const ref = useRef<HTMLDivElement | null>(null)
-    const isInView = useInView(ref, { once: true })
-
-    const animate = (timestamp: number) => {
-        if (!startTimeRef.current) {
-            startTimeRef.current = timestamp
-        }
-
-        const elapsed = timestamp - startTimeRef.current
-        const progress = Math.min(elapsed / duration, 1)
-
-        // Easing function for smooth animation
-        const easeOutQuart = 1 - Math.pow(1 - progress, 4)
-        const newValue = Math.floor(targetNumber * easeOutQuart)
-
-        startTransition(() => {
-            setCurrentNumber(newValue)
-        })
-
-        if (progress < 1) {
-            animationRef.current = requestAnimationFrame(animate)
-        } else {
-            startTransition(() => {
-                setCurrentNumber(targetNumber)
-            })
-            startTimeRef.current = undefined
-            animationRef.current = undefined
-        }
-    }
-
-    const startAnimation = () => {
-        // In static rendering or invalid duration cases, jump directly to target
-        if (isStatic || duration <= 0) {
-            setCurrentNumber(targetNumber)
-            return
-        }
-
-        if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current)
-            animationRef.current = undefined
-        }
-
-        startTransition(() => {
-            setCurrentNumber(0)
-        })
-        startTimeRef.current = undefined
-        animationRef.current = requestAnimationFrame(animate)
-    }
+    const [count, setCount] = useState(start)
+    const [isVisible, setIsVisible] = useState(false)
+    const containerRef = useRef(null)
 
     useEffect(() => {
-        if (autoStart && isInView) {
-            startAnimation()
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[0]
+            setIsVisible(entry.isIntersecting)
+        })
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current)
         }
 
         return () => {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current)
-                animationRef.current = undefined
+            if (containerRef.current) {
+                observer.unobserve(containerRef.current)
             }
-            startTimeRef.current = undefined
         }
-    }, [targetNumber, duration, autoStart, isInView])
+    }, [])
 
+    useEffect(() => {
+        const updateCount = () => {
+            const increment = incrementType === "integer" ? 1 : 0.1
+            setCount((prevCount) => {
+                const nextCount = parseFloat((prevCount + increment).toFixed(2))
+                return nextCount >= end ? end : nextCount
+            })
+        }
 
-    const displayValue = isStatic ? targetNumber : currentNumber
-    const displayText = showPrefix
-        ? `${displayValue}${prefixType}`
-        : displayValue.toString()
+        if (isVisible || (!startOnViewport && start !== end)) {
+            const intervalId = setInterval(updateCount, speed)
 
-    const isFixedWidth = props?.style && props.style.width === "100%"
+            return () => {
+                clearInterval(intervalId)
+            }
+        } else if (startOnViewport && isVisible) {
+            setCount(start)
+        }
+    }, [
+        count,
+        start,
+        end,
+        loop,
+        isVisible,
+        speed,
+        startOnViewport,
+        incrementType,
+    ])
+
+    useEffect(() => {
+        if (restartOnViewport && isVisible) {
+            setCount(start) // Restart the animation when re-entering the viewport
+        }
+    }, [isVisible, restartOnViewport, start])
+
+    const formatNumber = (number) => {
+        if (decimalSeparatorType === "comma") {
+            return number.toLocaleString("en-US")
+        } else if (decimalSeparatorType === "period") {
+            return number.toLocaleString("en-US").replace(/,/g, ".")
+        } else {
+            return number.toFixed(incrementType === "integer" ? 0 : 1)
+        }
+    }
 
     return (
-        <div
-            ref={ref}
+        <motion.div
+            ref={containerRef}
             style={{
-                ...props.style,
-                position: "relative",
-                display: "flex",
+                ...CounterStyles.container,
+                gap: `${gapSize}px`,
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "center",
+                fontSize: `${textSize}px`,
+                fontFamily: selectedFont.fontFamily,
+                fontWeight: selectedFont.fontWeight,
                 color: textColor,
-                cursor: autoStart ? "default" : "pointer",
-                ...(isFixedWidth ? {} : { width: "max-content" }),
-                ...font,
             }}
-            onClick={!autoStart ? startAnimation : undefined}
-            role={!autoStart ? "button" : undefined}
-            tabIndex={!autoStart ? 0 : undefined}
-            onKeyDown={
-                !autoStart
-                    ? (e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault()
-                              startAnimation()
-                          }
-                      }
-                    : undefined
-            }
         >
-            {displayText}
-        </div>
+            <span
+                style={{
+                    fontFamily: prefixFont.fontFamily,
+                    fontWeight: prefixFont.fontWeight,
+                    color: prefixColor,
+                }}
+            >
+                {prefixText}
+            </span>
+            <span>{formatNumber(count)}</span>
+            <span
+                style={{
+                    fontFamily: suffixFont.fontFamily,
+                    fontWeight: suffixFont.fontWeight,
+                    color: suffixColor,
+                }}
+            >
+                {suffixText}
+            </span>
+        </motion.div>
     )
 }
 
+Counter.defaultProps = {
+    start: 0,
+    end: 100,
+    speed: 100,
+    prefixText: "",
+    suffixText: "",
+    loop: false,
+    decimalSeparatorType: "comma",
+    textSize: 36,
+    selectedFont: {
+        fontFamily: "Archivo",
+        fontWeight: 500,
+        systemFont: true,
+    },
+    textColor: "#D3D3D3",
+    startOnViewport: false,
+    incrementType: "integer",
+}
+
 addPropertyControls(Counter, {
-    targetNumber: {
-        type: ControlType.Number,
-        title: "Target Number",
-        defaultValue: 100,
-        min: 0,
-        max: 10000,
-        step: 1,
-    },
-    duration: {
-        type: ControlType.Number,
-        title: "Duration",
-        defaultValue: 2000,
-        min: 100,
-        max: 10000,
-        step: 100,
-        unit: "ms",
-    },
-    showPrefix: {
+    startOnViewport: {
         type: ControlType.Boolean,
-        title: "Show Symbol",
+        title: "Viewport",
         defaultValue: false,
-        enabledTitle: "Show",
-        disabledTitle: "Hide",
+        enabledTitle: "On",
+        disabledTitle: "Off",
     },
-    prefixType: {
-        type: ControlType.Enum,
-        title: "Symbol",
-        options: ["+", "%"],
-        optionTitles: ["Plus (+)", "Percent (%)"],
-        defaultValue: "+",
-        displaySegmentedControl: true,
-        hidden: ({ showPrefix }) => !showPrefix,
-    },
-    autoStart: {
+    restartOnViewport: {
         type: ControlType.Boolean,
-        title: "Auto Start",
-        defaultValue: true,
-        enabledTitle: "Auto",
-        disabledTitle: "Click",
+        title: "Replay",
+        defaultValue: false,
+        enabledTitle: "Yes",
+        disabledTitle: "No",
+    },
+    selectedFont: {
+        title: "Font",
+        type: ControlType.Font,
+        defaultValue: {
+            fontFamily: "Inter",
+            fontWeight: 500,
+            systemFont: true,
+        },
+    },
+    textSize: {
+        title: "Font Size",
+        type: ControlType.Number,
+        min: 8,
+        max: 240,
+        step: 1,
     },
     textColor: {
         type: ControlType.Color,
-        title: "Text Color",
-        defaultValue: "#000000",
+        title: "Font Color",
     },
-    font: {
+    start: {
+        type: ControlType.Number,
+        title: "Start Number",
+        defaultValue: 0,
+        displayStepper: true,
+    },
+    end: {
+        type: ControlType.Number,
+        title: "End Number",
+        defaultValue: 10,
+        displayStepper: true,
+    },
+    decimalSeparatorType: {
+        type: ControlType.Enum,
+        title: "Separator",
+        defaultValue: "comma",
+        options: ["comma", "period", "none"],
+        optionTitles: ["Comma (1,000)", "Decimal (1.000)", "None"],
+    },
+    incrementType: {
+        type: ControlType.Enum,
+        title: "Increment Type",
+        defaultValue: "integer",
+        options: ["integer", "decimal"],
+        optionTitles: ["Integer", "Decimal"],
+    },
+    prefixText: {
+        type: ControlType.String,
+        title: "Prefix",
+        defaultValue: "",
+    },
+    prefixFont: {
+        title: "Prefix Font",
         type: ControlType.Font,
-        title: "Font",
         defaultValue: {
-            fontSize: 32,
-            letterSpacing: "-0.02em",
-            lineHeight: "1em",
+            fontFamily: "Inter",
+            fontWeight: 500,
+            systemFont: true,
         },
-        controls: "extended",
-        defaultFontType: "sans-serif",
+    },
+    prefixColor: {
+        type: ControlType.Color,
+        title: "Prefix Color",
+    },
+    suffixText: {
+        type: ControlType.String,
+        title: "Suffix",
+        defaultValue: "",
+    },
+    suffixFont: {
+        title: "Suffix Font",
+        type: ControlType.Font,
+        defaultValue: {
+            fontFamily: "Inter",
+            fontWeight: 500,
+            systemFont: true,
+        },
+    },
+    suffixColor: {
+        type: ControlType.Color,
+        title: "Suffix Color",
+    },
+    gapSize: {
+        type: ControlType.Number,
+        title: "Gap Size",
+        defaultValue: 4, // Default value for gap size
+        min: 0,
+        max: 100,
+        step: 4,
+    },
+    speed: {
+        type: ControlType.Number,
+        title: "Speed (ms)",
+        defaultValue: 100,
+        min: 0,
+        max: 2000,
+        step: 10,
+    },
+    loop: {
+        type: ControlType.Boolean,
+        title: "Loop Animation",
+        defaultValue: false,
+        enabledTitle: "On",
+        disabledTitle: "Off",
+        description: "Built by Microstacks",
     },
 })
