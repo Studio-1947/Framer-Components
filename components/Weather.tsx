@@ -9,39 +9,34 @@ interface WeatherProps {
         latitude: number
         longitude: number
         refreshInterval: number
-        font: {
-            fontFamily: string
-            fontWeight: string | number
-            fontStyle: string
+
+        typography: {
+            font: {
+                fontFamily: string
+                fontWeight: string | number
+                fontStyle: string
+            }
+            letterSpacing: number
+            lineHeight: number
+            fontSize: number
+            color: string
         }
-        letterSpacing: number
-        lineHeight: number
-        fontSize: number
     }
-    fontSettings?: {
-        font?: {
-            fontSize?: number
-            fontFamily?: string
-            fontWeight?: number | string
-            fontStyle?: string
-            letterSpacing?: string | number
-            lineHeight?: string | number
+    labelSettings?: {
+        typography: {
+            font: {
+                fontFamily: string
+                fontWeight: string | number
+                fontStyle: string
+            }
+            fontSize: number
+            letterSpacing: number
+            lineHeight: number
+            color: string
         }
-        fontSize: number
-        tempFontSize: number
-        labelFont: {
-            fontFamily: string
-            fontWeight: string | number
-            fontStyle: string
-        }
-        labelLetterSpacing: number
-        labelLineHeight: number
-        labelFontSize: number
-        labelColor: string
     }
     styling?: {
         backgroundColor: string
-        textColor: string
         borderColor: string
         borderRadius: number
         padding: number
@@ -90,13 +85,21 @@ export default function Weather(props: WeatherProps) {
     const getLongitude = () => props.locationSettings?.longitude || props.longitude || 88.19006944444445
     const getRefreshInterval = () => props.locationSettings?.refreshInterval || props.refreshInterval || 3600
 
-    const getFont = () => props.locationSettings?.font || { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" }
-    const getTempFontSize = () => props.fontSettings?.tempFontSize || props.tempFontSize || 26
-    const getLabelFont = () => props.fontSettings?.labelFont || { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" }
-    const getLabelColor = () => props.fontSettings?.labelColor || props.labelColor || "#6b7280"
+    const getFont = () => props.locationSettings?.typography?.font || { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" }
+    const getFontSize = () => props.locationSettings?.typography?.fontSize || props.fontSize || 14
+    const getLetterSpacing = () => props.locationSettings?.typography?.letterSpacing || 0
+    const getLineHeight = () => props.locationSettings?.typography?.lineHeight || 1.45
+
+    const getTempFontSize = () => getFontSize()
+
+    const getLabelFont = () => props.labelSettings?.typography?.font || { fontFamily: "Inter", fontWeight: 400, fontStyle: "normal" }
+    const getLabelFontSize = () => props.labelSettings?.typography?.fontSize || props.labelFontSize || 11
+    const getLabelLetterSpacing = () => props.labelSettings?.typography?.letterSpacing || 0
+    const getLabelLineHeight = () => props.labelSettings?.typography?.lineHeight || 1.2
+    const getLabelColor = () => props.labelSettings?.typography?.color || props.labelColor || "#6b7280"
 
     const getBackgroundColor = () => props.styling?.backgroundColor || props.backgroundColor || "transparent"
-    const getTextColor = () => props.styling?.textColor || props.textColor || "#111827"
+    const getTextColor = () => props.locationSettings?.typography?.color || props.textColor || "#111827"
     const getBorderColor = () => props.styling?.borderColor || props.borderColor || "#E5E7EB"
     const getBorderRadius = () => props.styling?.borderRadius || props.borderRadius || 0
     const getPadding = () => props.styling?.padding || props.padding || 0
@@ -181,16 +184,15 @@ export default function Weather(props: WeatherProps) {
         padding: `${getPadding()}px`,
         border: "none",
         borderRadius: "0px",
-        minWidth: "220px",
         lineHeight: "1.45",
         alignItems: getAlignment() === "center" ? "center" : getAlignment() === "right" ? "flex-end" : "flex-start",
         textAlign: getAlignment() as any,
         fontFamily: baseFont.fontFamily,
         fontWeight: baseFont.fontWeight,
         fontStyle: baseFont.fontStyle,
-        fontSize: props.locationSettings?.fontSize || 14,
-        letterSpacing: props.locationSettings?.letterSpacing || 0,
-        lineHeight: props.locationSettings?.lineHeight || 1.45,
+        fontSize: getFontSize(),
+        letterSpacing: getLetterSpacing(),
+        lineHeight: getLineHeight(),
     }
 
     const locationStyle: React.CSSProperties = {
@@ -201,9 +203,10 @@ export default function Weather(props: WeatherProps) {
         fontFamily: labelFont.fontFamily,
         fontWeight: labelFont.fontWeight,
         fontStyle: labelFont.fontStyle,
-        fontSize: props.fontSettings?.labelFontSize || 11,
-        letterSpacing: props.fontSettings?.labelLetterSpacing || 0,
-        lineHeight: props.fontSettings?.labelLineHeight || 1.2,
+        fontSize: getLabelFontSize(),
+        letterSpacing: getLabelLetterSpacing(),
+        lineHeight: getLabelLineHeight(),
+        whiteSpace: "nowrap",
     }
 
     const dataContainerStyle: React.CSSProperties = {
@@ -223,6 +226,7 @@ export default function Weather(props: WeatherProps) {
         fontWeight: 800, // Keep temperature values as 800 weight
         fontFamily: baseFont.fontFamily,
         fontStyle: baseFont.fontStyle,
+        whiteSpace: "nowrap",
     }
 
     const labelStyle: React.CSSProperties = {
@@ -230,9 +234,10 @@ export default function Weather(props: WeatherProps) {
         fontFamily: labelFont.fontFamily,
         fontWeight: labelFont.fontWeight,
         fontStyle: labelFont.fontStyle,
-        fontSize: props.fontSettings?.labelFontSize || 11,
-        letterSpacing: props.fontSettings?.labelLetterSpacing || 0,
-        lineHeight: props.fontSettings?.labelLineHeight || 1.2,
+        fontSize: getLabelFontSize(),
+        letterSpacing: getLabelLetterSpacing(),
+        lineHeight: getLabelLineHeight(),
+        whiteSpace: "nowrap",
     }
 
     const dividerStyle: React.CSSProperties = {
@@ -346,91 +351,100 @@ addPropertyControls(Weather, {
                 step: 60,
                 displayStepper: true,
             },
-            font: {
-                type: ControlType.Font,
-                title: "Font",
-                defaultValue: {
-                    fontFamily: "Inter",
-                    fontWeight: 400,
-                    fontStyle: "normal",
-                },
-            },
-            fontSize: {
-                type: ControlType.Number,
-                title: "Font Size",
-                defaultValue: 14,
-                min: 8,
-                max: 48,
-                step: 1,
-            },
-            letterSpacing: {
-                type: ControlType.Number,
-                title: "Letter Spacing",
-                defaultValue: 0,
-                min: -5,
-                max: 10,
-                step: 0.1,
-            },
-            lineHeight: {
-                type: ControlType.Number,
-                title: "Line Height",
-                defaultValue: 1.45,
-                min: 0.8,
-                max: 2,
-                step: 0.1,
+
+            typography: {
+                type: ControlType.Object,
+                title: "Typography",
+                controls: {
+                    font: {
+                        type: ControlType.Font,
+                        title: "Font",
+                        defaultValue: {
+                            fontFamily: "Inter",
+                            fontWeight: 400,
+                            fontStyle: "normal",
+                        },
+                    },
+                    fontSize: {
+                        type: ControlType.Number,
+                        title: "Size",
+                        defaultValue: 14,
+                        min: 8,
+                        max: 48,
+                        step: 1,
+                    },
+                    letterSpacing: {
+                        type: ControlType.Number,
+                        title: "Spacing",
+                        defaultValue: 0,
+                        min: -5,
+                        max: 10,
+                        step: 0.1,
+                    },
+                    lineHeight: {
+                        type: ControlType.Number,
+                        title: "Line Ht",
+                        defaultValue: 1.45,
+                        min: 0.8,
+                        max: 2,
+                        step: 0.1,
+                    },
+                    color: {
+                        type: ControlType.Color,
+                        title: "Color",
+                        defaultValue: "#111827",
+                    },
+                }
             },
         },
     },
-    fontSettings: {
+    labelSettings: {
         type: ControlType.Object,
-        title: "Typography",
+        title: "Label",
         controls: {
-            tempFontSize: {
-                type: ControlType.Number,
-                title: "Temperature Font Size",
-                defaultValue: 26,
-                min: 12,
-                max: 48,
-                step: 1,
-                displayStepper: true,
-            },
-            labelFont: {
-                type: ControlType.Font,
-                title: "Label Font",
-                defaultValue: {
-                    fontFamily: "Inter",
-                    fontWeight: 400,
-                    fontStyle: "normal",
-                },
-            },
-            labelFontSize: {
-                type: ControlType.Number,
-                title: "Label Size",
-                defaultValue: 11,
-                min: 8,
-                max: 32,
-                step: 1,
-            },
-            labelLetterSpacing: {
-                type: ControlType.Number,
-                title: "Label Spacing",
-                defaultValue: 0,
-                min: -5,
-                max: 10,
-                step: 0.1,
-            },
-            labelLineHeight: {
-                type: ControlType.Number,
-                title: "Label Line Ht",
-                defaultValue: 1.2,
-                min: 0.8,
-                max: 2,
-                step: 0.1,
-            },
-            labelColor: {
-                type: ControlType.Color,
-                title: "Label Color",
-                defaultValue: "#6b7280",
+            typography: {
+                type: ControlType.Object,
+                title: "Typography",
+                controls: {
+                    font: {
+                        type: ControlType.Font,
+                        title: "Font",
+                        defaultValue: {
+                            fontFamily: "Inter",
+                            fontWeight: 400,
+                            fontStyle: "normal",
+                        },
+                    },
+                    fontSize: {
+                        type: ControlType.Number,
+                        title: "Size",
+                        defaultValue: 11,
+                        min: 8,
+                        max: 32,
+                        step: 1,
+                    },
+                    letterSpacing: {
+                        type: ControlType.Number,
+                        title: "Spacing",
+                        defaultValue: 0,
+                        min: -5,
+                        max: 10,
+                        step: 0.1,
+                    },
+                    lineHeight: {
+                        type: ControlType.Number,
+                        title: "Line Ht",
+                        defaultValue: 1.2,
+                        min: 0.8,
+                        max: 2,
+                        step: 0.1,
+                    },
+                    color: {
+                        type: ControlType.Color,
+                        title: "Color",
+                        defaultValue: "#6b7280",
+                    },
+                }
             },
         },
     },
@@ -438,11 +452,6 @@ addPropertyControls(Weather, {
         type: ControlType.Object,
         title: "Styling",
         controls: {
-            textColor: {
-                type: ControlType.Color,
-                title: "Text Color",
-                defaultValue: "#111827",
-            },
             padding: {
                 type: ControlType.Number,
                 title: "Padding",
