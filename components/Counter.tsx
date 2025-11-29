@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react"
-import { motion } from "framer-motion"
+import React, { useEffect, useRef, useMemo } from "react"
+import { motion, useAnimate, useInView } from "framer-motion"
 import { addPropertyControls, ControlType } from "framer"
 
 const CounterStyles = {
@@ -7,14 +7,95 @@ const CounterStyles = {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
+        overflow: "hidden",
     },
+    digitContainer: {
+        position: "relative" as const,
+        display: "inline-flex",
+        overflow: "hidden",
+        height: "1em",
+        width: "auto",
+        flexDirection: "column" as const,
+        verticalAlign: "top",
+        fontVariantNumeric: "tabular-nums",
+    },
+    digitStrip: {
+        display: "flex",
+        flexDirection: "column" as const,
+        willChange: "transform",
+        lineHeight: 1,
+        fontVariantNumeric: "tabular-nums",
+    },
+}
+
+function Digit({ value, initial, direction, duration, font, color }) {
+    const [scope, animate] = useAnimate()
+    const isUp = direction === "up"
+
+    const numbers = useMemo(() => {
+        const nums = Array.from({ length: 10 }, (_, i) => i)
+        return isUp ? nums : nums.reverse()
+    }, [isUp])
+
+    const getIndex = (val) => {
+        const num = parseInt(val, 10)
+        if (isNaN(num)) return 0
+        return numbers.indexOf(num)
+    }
+
+    useEffect(() => {
+        const startIndex = getIndex(initial)
+        const endIndex = getIndex(value)
+
+        if (initial === value) {
+            animate(scope.current, { y: `${-endIndex}em` }, { duration: 0 })
+            return
+        }
+
+        animate(
+            scope.current,
+            { y: [`${-startIndex}em`, `${-endIndex}em`] },
+            {
+                duration: duration,
+                ease: "circOut",
+            }
+        )
+    }, [value, initial, duration, numbers, animate, scope])
+
+    return (
+        <div style={CounterStyles.digitContainer}>
+            <motion.div
+                ref={scope}
+                style={{
+                    ...CounterStyles.digitStrip,
+                    color: color,
+                    fontFamily: font.fontFamily,
+                    fontWeight: font.fontWeight,
+                    fontStyle: font.fontStyle,
+                }}
+            >
+                {numbers.map((num) => (
+                    <span
+                        key={num}
+                        style={{
+                            height: "1em",
+                            display: "block",
+                            textAlign: "center",
+                        }}
+                    >
+                        {num}
+                    </span>
+                ))}
+            </motion.div>
+        </div>
+    )
 }
 
 export function Counter(props) {
     const {
         start,
         end,
-        speed,
+        duration,
         gapSize,
         prefixText,
         suffixText,
@@ -22,80 +103,70 @@ export function Counter(props) {
         suffixFont,
         prefixColor,
         suffixColor,
-        loop,
         decimalSeparatorType,
         textSize,
         selectedFont,
         textColor,
         startOnViewport,
-        restartOnViewport,
-        incrementType,
+        loop,
     } = props
 
-    const [count, setCount] = useState(start)
-    const [isVisible, setIsVisible] = useState(false)
     const containerRef = useRef(null)
+    const isInView = useInView(containerRef, { once: !loop })
 
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            const entry = entries[0]
-            setIsVisible(entry.isIntersecting)
-        })
-
-        if (containerRef.current) {
-            observer.observe(containerRef.current)
-        }
-
-        return () => {
-            if (containerRef.current) {
-                observer.unobserve(containerRef.current)
-            }
-        }
-    }, [])
-
-    useEffect(() => {
-        const updateCount = () => {
-            const increment = incrementType === "integer" ? 1 : 0.1
-            setCount((prevCount) => {
-                const nextCount = parseFloat((prevCount + increment).toFixed(2))
-                return nextCount >= end ? end : nextCount
-            })
-        }
-
-        if (isVisible || (!startOnViewport && start !== end)) {
-            const intervalId = setInterval(updateCount, speed)
-
-            return () => {
-                clearInterval(intervalId)
-            }
-        } else if (startOnViewport && isVisible) {
-            setCount(start)
-        }
-    }, [
-        count,
-        start,
-        end,
-        loop,
-        isVisible,
-        speed,
-        startOnViewport,
-        incrementType,
-    ])
-
-    useEffect(() => {
-        if (restartOnViewport && isVisible) {
-            setCount(start) // Restart the animation when re-entering the viewport
-        }
-    }, [isVisible, restartOnViewport, start])
-
-    const formatNumber = (number) => {
+    const format = (num) => {
         if (decimalSeparatorType === "comma") {
-            return number.toLocaleString("en-US")
+            return Math.round(num).toLocaleString("en-US")
         } else if (decimalSeparatorType === "period") {
-            return number.toLocaleString("en-US").replace(/,/g, ".")
+            return Math.round(num).toLocaleString("en-US").replace(/,/g, ".")
         } else {
-            return number.toFixed(incrementType === "integer" ? 0 : 1)
+            return Math.round(num).toString()
         }
+    }
+
+    const startStr = format(start)
+    const endStr = format(end)
+
+    const maxLength = Math.max(startStr.length, endStr.length)
+    const paddedStart = startStr.padStart(maxLength, " ")
+    const paddedEnd = endStr.padStart(maxLength, " ")
+
+    const renderContent = () => {
+        const content = []
+        let digitIndex = 0
+
+        for (let i = 0; i < paddedEnd.length; i++) {
+            const char = paddedEnd[i]
+            const startChar = paddedStart[i] || "0"
+
+            if (/[0-9]/.test(char)) {
+                const direction = digitIndex % 2 === 0 ? "down" : "up"
+                const initialVal = /[0-9]/.test(startChar) ? startChar : "0"
+
+                content.push(
+                    <Digit
+                        key={`digit-${i}`}
+                        value={isInView ? char : initialVal}
+                        initial={initialVal}
+                        direction={direction}
+                        duration={duration}
+                        font={selectedFont}
+                        color={textColor}
+                    />
+                )
+                digitIndex++
+            } else {
+                content.push(
+                    <span
+                        key={`sep-${i}`}
+                        style={{ opacity: char === " " ? 0 : 1 }}
+                    >
+                        {char}
+                    </span>
+                )
+            }
+        }
+        return content
     }
 
     return (
@@ -104,8 +175,6 @@ export function Counter(props) {
             style={{
                 ...CounterStyles.container,
                 gap: `${gapSize}px`,
-                flexDirection: "row",
-                alignItems: "center",
                 fontSize: `${textSize}px`,
                 fontFamily: selectedFont.fontFamily,
                 fontWeight: selectedFont.fontWeight,
@@ -121,7 +190,11 @@ export function Counter(props) {
             >
                 {prefixText}
             </span>
-            <span>{formatNumber(count)}</span>
+
+            <div style={{ display: "flex", flexDirection: "row" }}>
+                {renderContent()}
+            </div>
+
             <span
                 style={{
                     fontFamily: suffixFont.fontFamily,
@@ -138,33 +211,32 @@ export function Counter(props) {
 Counter.defaultProps = {
     start: 0,
     end: 100,
-    speed: 100,
+    duration: 2,
     prefixText: "",
     suffixText: "",
     loop: false,
     decimalSeparatorType: "comma",
     textSize: 36,
     selectedFont: {
-        fontFamily: "Archivo",
+        fontFamily: "Inter",
         fontWeight: 500,
         systemFont: true,
     },
-    textColor: "#D3D3D3",
-    startOnViewport: false,
-    incrementType: "integer",
+    textColor: "#333",
+    startOnViewport: true,
 }
 
 addPropertyControls(Counter, {
     startOnViewport: {
         type: ControlType.Boolean,
         title: "Viewport",
-        defaultValue: false,
+        defaultValue: true,
         enabledTitle: "On",
         disabledTitle: "Off",
     },
-    restartOnViewport: {
+    loop: {
         type: ControlType.Boolean,
-        title: "Replay",
+        title: "Loop",
         defaultValue: false,
         enabledTitle: "Yes",
         disabledTitle: "No",
@@ -179,27 +251,36 @@ addPropertyControls(Counter, {
         },
     },
     textSize: {
-        title: "Font Size",
+        title: "Size",
         type: ControlType.Number,
         min: 8,
         max: 240,
         step: 1,
+        defaultValue: 36,
     },
     textColor: {
         type: ControlType.Color,
-        title: "Font Color",
+        title: "Color",
+        defaultValue: "#333",
     },
     start: {
         type: ControlType.Number,
-        title: "Start Number",
+        title: "Start",
         defaultValue: 0,
-        displayStepper: true,
     },
     end: {
         type: ControlType.Number,
-        title: "End Number",
-        defaultValue: 10,
-        displayStepper: true,
+        title: "End",
+        defaultValue: 100,
+    },
+    duration: {
+        type: ControlType.Number,
+        title: "Duration",
+        defaultValue: 2,
+        min: 0.1,
+        max: 10,
+        step: 0.1,
+        unit: "s",
     },
     decimalSeparatorType: {
         type: ControlType.Enum,
@@ -208,20 +289,13 @@ addPropertyControls(Counter, {
         options: ["comma", "period", "none"],
         optionTitles: ["Comma (1,000)", "Decimal (1.000)", "None"],
     },
-    incrementType: {
-        type: ControlType.Enum,
-        title: "Increment Type",
-        defaultValue: "integer",
-        options: ["integer", "decimal"],
-        optionTitles: ["Integer", "Decimal"],
-    },
     prefixText: {
         type: ControlType.String,
         title: "Prefix",
         defaultValue: "",
     },
     prefixFont: {
-        title: "Prefix Font",
+        title: "Pre Font",
         type: ControlType.Font,
         defaultValue: {
             fontFamily: "Inter",
@@ -231,7 +305,7 @@ addPropertyControls(Counter, {
     },
     prefixColor: {
         type: ControlType.Color,
-        title: "Prefix Color",
+        title: "Pre Color",
     },
     suffixText: {
         type: ControlType.String,
@@ -239,7 +313,7 @@ addPropertyControls(Counter, {
         defaultValue: "",
     },
     suffixFont: {
-        title: "Suffix Font",
+        title: "Suf Font",
         type: ControlType.Font,
         defaultValue: {
             fontFamily: "Inter",
@@ -249,30 +323,14 @@ addPropertyControls(Counter, {
     },
     suffixColor: {
         type: ControlType.Color,
-        title: "Suffix Color",
+        title: "Suf Color",
     },
     gapSize: {
         type: ControlType.Number,
-        title: "Gap Size",
-        defaultValue: 4, // Default value for gap size
+        title: "Gap",
+        defaultValue: 4,
         min: 0,
         max: 100,
-        step: 4,
-    },
-    speed: {
-        type: ControlType.Number,
-        title: "Speed (ms)",
-        defaultValue: 100,
-        min: 0,
-        max: 2000,
-        step: 10,
-    },
-    loop: {
-        type: ControlType.Boolean,
-        title: "Loop Animation",
-        defaultValue: false,
-        enabledTitle: "On",
-        disabledTitle: "Off",
-        description: "Built by Microstacks",
+        step: 1,
     },
 })
