@@ -12,19 +12,21 @@ const CounterStyles = {
     digitContainer: {
         position: "relative" as const,
         display: "inline-flex",
-        overflow: "hidden",
+        clipPath: "inset(0 -100% 0 -100%)",
         height: "1em",
         width: "auto",
         flexDirection: "column" as const,
         verticalAlign: "top",
-        fontVariantNumeric: "tabular-nums",
     },
     digitStrip: {
+        position: "absolute" as const,
+        top: 0,
+        left: 0,
+        width: "100%",
         display: "flex",
         flexDirection: "column" as const,
         willChange: "transform",
         lineHeight: 1,
-        fontVariantNumeric: "tabular-nums",
     },
 }
 
@@ -63,7 +65,22 @@ function Digit({ value, initial, direction, duration, font, color }) {
     }, [value, initial, duration, numbers, animate, scope])
 
     return (
-        <div style={CounterStyles.digitContainer}>
+        <motion.div
+            layout
+            style={CounterStyles.digitContainer}
+            transition={{ layout: { duration: duration, ease: "circOut" } }}
+        >
+            <span
+                style={{
+                    visibility: "hidden",
+                    fontFamily: font.fontFamily,
+                    fontWeight: font.fontWeight,
+                    fontStyle: font.fontStyle,
+                    lineHeight: 1,
+                }}
+            >
+                {value}
+            </span>
             <motion.div
                 ref={scope}
                 style={{
@@ -87,7 +104,7 @@ function Digit({ value, initial, direction, duration, font, color }) {
                     </span>
                 ))}
             </motion.div>
-        </div>
+        </motion.div>
     )
 }
 
