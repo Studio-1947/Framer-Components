@@ -7,7 +7,7 @@ const CounterStyles = {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        overflow: "hidden",
+        overflow: "visible",
     },
     digitContainer: {
         position: "relative" as const,
@@ -16,7 +16,8 @@ const CounterStyles = {
         height: "1em",
         width: "auto",
         flexDirection: "column" as const,
-        verticalAlign: "top",
+        flexDirection: "column" as const,
+        // verticalAlign: "top",
     },
     digitStrip: {
         position: "absolute" as const,
@@ -116,8 +117,6 @@ export function Counter(props) {
         gapSize,
         prefixText,
         suffixText,
-        prefixFont,
-        suffixFont,
         prefixColor,
         suffixColor,
         decimalSeparatorType,
@@ -200,23 +199,32 @@ export function Counter(props) {
         >
             <span
                 style={{
-                    fontFamily: prefixFont.fontFamily,
-                    fontWeight: prefixFont.fontWeight,
+                    fontFamily: selectedFont.fontFamily,
+                    fontWeight: selectedFont.fontWeight,
                     color: prefixColor,
+                    lineHeight: 1,
                 }}
             >
                 {prefixText}
             </span>
 
-            <div style={{ display: "flex", flexDirection: "row" }}>
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    overflow: "visible",
+                }}
+            >
                 {renderContent()}
             </div>
 
             <span
                 style={{
-                    fontFamily: suffixFont.fontFamily,
-                    fontWeight: suffixFont.fontWeight,
+                    fontFamily: selectedFont.fontFamily,
+                    fontWeight: selectedFont.fontWeight,
                     color: suffixColor,
+                    lineHeight: 1,
                 }}
             >
                 {suffixText}
@@ -311,15 +319,6 @@ addPropertyControls(Counter, {
         title: "Prefix",
         defaultValue: "",
     },
-    prefixFont: {
-        title: "Pre Font",
-        type: ControlType.Font,
-        defaultValue: {
-            fontFamily: "Inter",
-            fontWeight: 500,
-            systemFont: true,
-        },
-    },
     prefixColor: {
         type: ControlType.Color,
         title: "Pre Color",
@@ -328,15 +327,6 @@ addPropertyControls(Counter, {
         type: ControlType.String,
         title: "Suffix",
         defaultValue: "",
-    },
-    suffixFont: {
-        title: "Suf Font",
-        type: ControlType.Font,
-        defaultValue: {
-            fontFamily: "Inter",
-            fontWeight: 500,
-            systemFont: true,
-        },
     },
     suffixColor: {
         type: ControlType.Color,
