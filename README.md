@@ -10,6 +10,9 @@ A real-time weather display component that fetches current temperature and air q
 
 **Features:**
 - Real-time temperature and AQI data from Open-Meteo APIs
+- **NEW** Dynamic weather icons based on conditions
+- **NEW** Local caching for instant load times
+- **NEW** Auto-retry logic for network resilience
 - Configurable location coordinates
 - Automatic data refresh intervals
 - Clean, minimal design with transparent background
@@ -89,7 +92,11 @@ All components support extensive customization through Framer's property control
 
 ## Version History
 
-### v1.3.0 (Current)
+### v1.4.0 (Current)
+- **Weather**: Major enhancements including local caching, retry logic, dynamic weather icons, and streamlined property controls.
+- **Weather**: Updated default location to "Mirik, Darjeeling India".
+
+### v1.3.0
 - **FAQ**: Refactored properties for better usability, unified font controls, added icon color.
 - **Razorpay**: Added Razorpay payment button component with auto-styling.
 - **ScrollRotator**: Added scroll-aware rotation component.
