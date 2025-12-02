@@ -4,47 +4,6 @@ A comprehensive collection of dynamic, customizable React components for Framer,
 
 ## Components
 
-### Mouse Triggers
-Interactive components that work together to create sophisticated click tracking and view counting systems.
-
-#### ViewCounter
-A social media-style view counter component with smooth animations and multiple display formats.
-
-**Features:**
-- Animated count-up transitions with easing
-- Multiple format styles (compact: 1.2K, full: 1,200, custom suffix)
-- Icon types: eye, views, heart, star, or custom SVG
-- Event-based communication system
-- Parent frame click support
-- Mobile responsive design
-- Full accessibility support
-
-#### ClickTrigger
-An invisible overlay component that captures clicks and communicates with ViewCounter components.
-
-**Features:**
-- Completely transparent click capture area
-- Event-based communication with ViewCounter
-- Debug mode with visible outline
-- Flexible positioning and sizing
-- Configurable increment amounts
-- Multiple instance support with unique targeting
-
-**Usage Example:**
-```tsx
-// Step 1: Add ViewCounter with unique ID
-<ViewCounter
-  componentId="productCard1"
-  listenToTriggers={true}
-  disableDirectClick={true}
-/>
-
-// Step 2: Add ClickTrigger targeting the counter
-<ClickTrigger
-  targetComponentId="productCard1"
-  incrementAmount={1}
-/>
-```
 
 ### Weather
 A real-time weather display component that fetches current temperature and air quality data.
@@ -78,6 +37,35 @@ An animated text component that cycles through words with smooth transitions, in
 - Random or sequential word order
 - Full styling control through Framer property controls
 
+### FAQ
+A customizable FAQ component with smooth expand/collapse animations and extensive styling controls.
+
+**Features:**
+- Expandable/collapsible items with smooth height transitions
+- Customizable icons (Plus/Minus, Lines, Chevron) with color control
+- Unified typography controls for questions and answers
+- Configurable divider styles
+- Responsive design with flexible alignment
+
+### Razorpay
+A wrapper component for easily integrating Razorpay payment buttons with automatic styling.
+
+**Features:**
+- Seamless integration of Razorpay payment buttons
+- Automatic rounded corner styling to match modern UI
+- Alignment controls (Left, Center, Right)
+- Custom Button ID support via property controls
+
+### ScrollRotator
+An interactive component that rotates its content based on scroll direction.
+
+**Features:**
+- Scroll-direction aware rotation (Clockwise on scroll down, Anticlockwise on scroll up)
+- Customizable rotation speed and size
+- Slot support for multiple items
+- Optional background with color control
+- Optimized for performance with `useAnimationFrame`
+
 ## Customization
 
 All components support extensive customization through Framer's property controls:
@@ -101,7 +89,12 @@ All components support extensive customization through Framer's property control
 
 ## Version History
 
-### v1.2.0 (Current)
+### v1.3.0 (Current)
+- **FAQ**: Refactored properties for better usability, unified font controls, added icon color.
+- **Razorpay**: Added Razorpay payment button component with auto-styling.
+- **ScrollRotator**: Added scroll-aware rotation component.
+
+### v1.2.0
 - **NEW**: Weather component with real-time data fetching
 - Added Open-Meteo API integration for temperature and air quality
 - Optimized font control patterns for better Framer compatibility
@@ -126,6 +119,3 @@ All components support extensive customization through Framer's property control
 
 ---
 
-**Made with love for the Framer community**
-
-*If you find this repository helpful, please give it a ⭐ on GitHub!*
