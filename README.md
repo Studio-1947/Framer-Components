@@ -92,7 +92,10 @@ All components support extensive customization through Framer's property control
 
 ## Version History
 
-### v1.4.0 (Current)
+### v1.5.0 (Current)
+- **NEW**: Added `FileUpload` component with drag-and-drop and progress states
+
+### v1.4.0
 - **Weather**: Major enhancements including local caching, retry logic, dynamic weather icons, and streamlined property controls.
 - **Weather**: Updated default location to "Mirik, Darjeeling India".
 
