@@ -50,6 +50,26 @@ A customizable FAQ component with smooth expand/collapse animations and extensiv
 - Configurable divider styles
 - Responsive design with flexible alignment
 
+### FileUpload
+A comprehensive file upload component with drag-and-drop support and visual feedback.
+
+**Features:**
+- **Drag & Drop**: Intuitive drag-and-drop zone with visual cues
+- **Validation**: File type and size restrictions with error feedback
+- **Progress Simulation**: Built-in upload progress visualization
+- **Visual States**: Distinct styles for idle, hover, uploading, success, and error states
+- **Layout Friendly**: Supports Auto Layout and responsive sizing.
+- **Customizable**: Full control over colors, fonts, border styles, and text
+
+### Email Capture (Send to Email)
+To receive file uploads directly to your email:
+1.  Set the `Send to Email` property to your email address.
+2.  (Optional) Customize the `Email Subject`.
+
+The component will trigger an overlay asking the uploader for their email. Once they confirm, the file and their email will be sent to your inbox via **FormSubmit**.
+
+> **Note**: The first time you use a new email address, you will receive an activation email from FormSubmit. You must click "Activate" to start receiving submissions.
+
 ### Razorpay
 A wrapper component for easily integrating Razorpay payment buttons with automatic styling.
 
@@ -93,7 +113,7 @@ All components support extensive customization through Framer's property control
 ## Version History
 
 ### v1.5.0 (Current)
-- **NEW**: Added `FileUpload` component with drag-and-drop and progress states
+- **NEW**: Added `FileUpload` component with drag-and-drop and **Direct Email** integration
 
 ### v1.4.0
 - **Weather**: Major enhancements including local caching, retry logic, dynamic weather icons, and streamlined property controls.

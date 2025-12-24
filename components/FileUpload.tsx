@@ -38,6 +38,13 @@ const RemoveIcon = () => (
         <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
 )
+
+const MailIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+    </svg>
+)
 // #endregion
 
 interface FileUploadProps {
@@ -64,6 +71,8 @@ interface FileUploadProps {
     // Logic
     maxFileSize: number // in MB
     simulateProgress: boolean
+    receiverEmail?: string
+    formTitle?: string
 
     // Events
     onUploadStart?: (file: File) => void
@@ -89,6 +98,8 @@ export default function FileUpload(props: FileUploadProps) {
 
         maxFileSize = 5,
         simulateProgress = true,
+        receiverEmail,
+        formTitle = "New Submission",
 
         onUploadStart,
         onUploadComplete,
@@ -98,8 +109,9 @@ export default function FileUpload(props: FileUploadProps) {
     const [isDragging, setIsDragging] = useState(false)
     const [file, setFile] = useState<File | null>(null)
     const [progress, setProgress] = useState(0)
-    const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
+    const [status, setStatus] = useState<"idle" | "email_input" | "uploading" | "success" | "error">("idle")
     const [errorMessage, setErrorMessage] = useState("")
+    const [userEmail, setUserEmail] = useState("")
 
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -128,30 +140,27 @@ export default function FileUpload(props: FileUploadProps) {
 
         const droppedFiles = e.dataTransfer.files
         if (droppedFiles && droppedFiles.length > 0) {
-            validateAndUpload(droppedFiles[0])
+            validateAndPrepare(droppedFiles[0])
         }
     }
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            validateAndUpload(e.target.files[0])
+            validateAndPrepare(e.target.files[0])
         }
     }
 
-    const validateAndUpload = (file: File) => {
-        // Reset state
+    const validateAndPrepare = (selectedFile: File) => {
         setErrorMessage("")
         setStatus("idle")
 
         // 1. Check File Type
-        // Simple extension check
-        const fileExtension = "." + file.name.split(".").pop()?.toLowerCase()
+        const fileExtension = "." + selectedFile.name.split(".").pop()?.toLowerCase()
         const acceptedTypes = acceptedFileTypes.split(",").map(t => t.trim().toLowerCase())
 
         const isTypeValid = acceptedFileTypes === "*" || acceptedTypes.some(type => {
             if (type.startsWith(".")) return type === fileExtension
-            // MIME type check could be added here if needed, but extension is safer for UI feedback
-            return file.type.match(new RegExp(type.replace("*", ".*")))
+            return selectedFile.type.match(new RegExp(type.replace("*", ".*")))
         })
 
         if (!isTypeValid) {
@@ -162,38 +171,102 @@ export default function FileUpload(props: FileUploadProps) {
         }
 
         // 2. Check File Size
-        if (file.size > maxFileSize * 1024 * 1024) {
+        if (selectedFile.size > maxFileSize * 1024 * 1024) {
             setStatus("error")
             setErrorMessage(`File size too large. Max: ${maxFileSize}MB`)
             if (onError) onError(`File size too large`)
             return
         }
 
-        // Start Upload
-        setFile(file)
-        setStatus("uploading")
-        setProgress(0)
-        if (onUploadStart) onUploadStart(file)
+        setFile(selectedFile)
 
-        if (simulateProgress) {
-            simulateUpload(file)
+        // 3. Determine Next Step
+        if (receiverEmail) {
+            setStatus("email_input")
+        } else {
+            // Standard simulated upload (no email configured)
+            startUpload(selectedFile)
         }
-        // If not simulating, parent component should control 'progress' via props (requires controlled component pattern for full realism)
-        // For this component, we'll self-contain the logic or assume external usage matches this pattern. 
     }
 
-    const simulateUpload = (file: File) => {
-        const interval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval)
-                    setStatus("success")
-                    if (onUploadComplete) onUploadComplete(file)
-                    return 100
+    const handleEmailSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!userEmail || !userEmail.includes("@")) {
+            setErrorMessage("Please enter a valid email")
+            return
+        }
+        if (file) {
+            startUpload(file)
+        }
+    }
+
+    const startUpload = async (fileToUpload: File) => {
+        setStatus("uploading")
+        setProgress(0)
+        setErrorMessage("")
+        if (onUploadStart) onUploadStart(fileToUpload)
+
+        if (receiverEmail) {
+            try {
+                await uploadToEmail(fileToUpload)
+                setStatus("success")
+                if (onUploadComplete) onUploadComplete(fileToUpload)
+            } catch (err) {
+                setStatus("error")
+                setErrorMessage(err instanceof Error ? err.message : "Upload failed")
+                if (onError) onError(err instanceof Error ? err.message : "Upload failed")
+            }
+        } else if (simulateProgress) {
+            // Standard simulation
+            const interval = setInterval(() => {
+                setProgress(prev => {
+                    if (prev >= 100) {
+                        clearInterval(interval)
+                        setStatus("success")
+                        if (onUploadComplete) onUploadComplete(fileToUpload)
+                        return 100
+                    }
+                    return prev + Math.random() * 10
+                })
+            }, 200)
+        } else {
+            // Instant success if no email and no simulation
+            setStatus("success")
+            setProgress(100)
+            if (onUploadComplete) onUploadComplete(fileToUpload)
+        }
+    }
+
+    const uploadToEmail = (file: File): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData()
+            formData.append("email", userEmail) // Sender's email
+            formData.append("attachment", file)
+            formData.append("_subject", formTitle)
+            formData.append("_captcha", "false")
+            formData.append("_template", "table")
+
+            const xhr = new XMLHttpRequest()
+
+            xhr.upload.addEventListener("progress", (e) => {
+                if (e.lengthComputable) {
+                    setProgress((e.loaded / e.total) * 100)
                 }
-                return prev + Math.random() * 10
             })
-        }, 200)
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve()
+                    } else {
+                        reject(new Error("Upload failed. Check your email activation."))
+                    }
+                }
+            }
+
+            xhr.open("POST", `https://formsubmit.co/${receiverEmail}`)
+            xhr.send(formData)
+        })
     }
 
     const removeFile = (e: React.MouseEvent) => {
@@ -202,14 +275,13 @@ export default function FileUpload(props: FileUploadProps) {
         setStatus("idle")
         setProgress(0)
         setErrorMessage("")
+        setUserEmail("")
         if (inputRef.current) inputRef.current.value = ""
     }
 
-    // Styles
     const containerStyle: React.CSSProperties = {
         width: "100%",
-        minHeight: 180,
-        position: "relative",
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -218,8 +290,8 @@ export default function FileUpload(props: FileUploadProps) {
         borderRadius: borderRadius,
         backgroundColor: isDragging ? `${primaryColor}10` : backgroundColor,
         border: `2px ${borderStyle} ${status === "error" ? errorColor :
-                status === "success" ? successColor :
-                    isDragging ? primaryColor : "#E5E7EB"
+            status === "success" ? successColor :
+                isDragging ? primaryColor : "#E5E7EB"
             }`,
         transition: "all 0.2s ease-in-out",
         cursor: status === "uploading" ? "default" : "pointer",
@@ -228,11 +300,128 @@ export default function FileUpload(props: FileUploadProps) {
         overflow: "hidden",
     }
 
-    const textStyle: React.CSSProperties = {
-        textAlign: "center",
-        pointerEvents: "none",
+    // --- Render Logic ---
+
+    // 1. Overlay (Email Input)
+    if (status === "email_input") {
+        return (
+            <div style={containerStyle}>
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}
+                >
+                    <div style={{ textAlign: "center", marginBottom: 8 }}>
+                        <div style={{
+                            width: 48, height: 48, margin: "0 auto 12px",
+                            borderRadius: "50%", background: `${primaryColor}15`,
+                            display: "flex", alignItems: "center", justifyContent: "center", color: primaryColor
+                        }}>
+                            <MailIcon />
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: fontSize, color: "#111827" }}>Enter your email</h4>
+                        <p style={{ margin: "4px 0 0", fontSize: fontSize - 2, color: textColor }}>We'll verify your submission</p>
+                    </div>
+
+                    <form onSubmit={handleEmailSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <input
+                            type="email"
+                            placeholder="name@example.com"
+                            value={userEmail}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserEmail(e.target.value)}
+                            autoFocus
+                            style={{
+                                width: "100%",
+                                padding: "10px 12px",
+                                borderRadius: 8,
+                                border: "1px solid #E5E7EB",
+                                fontSize: fontSize,
+                                outline: "none",
+                                fontFamily: font.fontFamily
+                            }}
+                        />
+                        <button
+                            type="submit"
+                            style={{
+                                width: "100%",
+                                padding: "10px",
+                                borderRadius: 8,
+                                background: primaryColor,
+                                color: "white",
+                                border: "none",
+                                fontSize: fontSize,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                fontFamily: font.fontFamily
+                            }}
+                        >
+                            Confirm & Upload
+                        </button>
+                        <button
+                            type="button"
+                            onClick={removeFile}
+                            style={{
+                                background: "none", border: "none",
+                                color: textColor, fontSize: fontSize - 2,
+                                cursor: "pointer", marginTop: 4
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </form>
+                </motion.div>
+            </div>
+        )
     }
 
+    // 2. Active State (Uploading or Success or File Selected)
+    if (status === "uploading" || status === "success" || (status === "idle" && file)) {
+        return (
+            <div style={containerStyle}>
+                <motion.div
+                    key="active"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    style={{ width: "100%", maxWidth: 300 }}
+                >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                        <div style={{
+                            width: 40, height: 40, borderRadius: 8,
+                            background: `${primaryColor}20`, color: primaryColor,
+                            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                        }}>
+                            <FileIcon />
+                        </div>
+                        <div style={{ flex: 1, overflow: "hidden" }}>
+                            <p style={{ margin: 0, fontSize: fontSize, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {file?.name}
+                            </p>
+                            <p style={{ margin: 0, fontSize: fontSize - 2, color: textColor }}>
+                                {(file!.size / 1024 / 1024).toFixed(2)} MB • {status === "success" ? "Sent" : `${Math.round(progress)}%`}
+                            </p>
+                        </div>
+                        {status === "success" ? (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ color: successColor }}><CheckIcon /></motion.div>
+                        ) : null}
+                        <button onClick={removeFile} style={{ border: "none", background: "transparent", color: textColor, cursor: "pointer", padding: 4, display: "flex" }}>
+                            <RemoveIcon />
+                        </button>
+                    </div>
+
+                    <div style={{ width: "100%", height: 6, background: "#E5E7EB", borderRadius: 3, overflow: "hidden" }}>
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ type: "spring", bounce: 0 }}
+                            style={{ height: "100%", background: status === "success" ? successColor : primaryColor, borderRadius: 3 }}
+                        />
+                    </div>
+                </motion.div>
+            </div>
+        )
+    }
+
+    // 3. Default Idle/Error State
     return (
         <div
             style={containerStyle}
@@ -240,7 +429,7 @@ export default function FileUpload(props: FileUploadProps) {
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            onClick={() => status !== "uploading" && inputRef.current?.click()}
+            onClick={() => inputRef.current?.click()}
         >
             <input
                 ref={inputRef}
@@ -251,109 +440,30 @@ export default function FileUpload(props: FileUploadProps) {
             />
 
             <AnimatePresence mode="wait">
-                {status === "idle" || status === "error" ? (
-                    <motion.div
-                        key="idle"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, width: "100%" }}
-                    >
-                        <div style={{
-                            width: 48, height: 48,
-                            borderRadius: "50%",
-                            background: status === "error" ? `${errorColor}20` : `${primaryColor}20`,
-                            color: status === "error" ? errorColor : primaryColor,
-                            display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                            {status === "error" ? <ErrorIcon /> : <UploadIcon />}
-                        </div>
-                        <div style={textStyle}>
-                            <p style={{
-                                margin: 0,
-                                fontSize: fontSize,
-                                fontWeight: 600,
-                                color: status === "error" ? errorColor : "#111827",
-                                marginBottom: 4
-                            }}>
-                                {status === "error" ? "Upload Failed" : heading}
-                            </p>
-                            <p style={{ margin: 0, fontSize: fontSize - 1, color: textColor }}>
-                                {status === "error" ? errorMessage : subheading}
-                            </p>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="active"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        style={{ width: "100%", maxWidth: 300 }}
-                    >
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                            <div style={{
-                                width: 40, height: 40,
-                                borderRadius: 8,
-                                background: `${primaryColor}20`,
-                                color: primaryColor,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                flexShrink: 0
-                            }}>
-                                <FileIcon />
-                            </div>
-                            <div style={{ flex: 1, overflow: "hidden" }}>
-                                <p style={{ margin: 0, fontSize: fontSize, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                    {file?.name}
-                                </p>
-                                <p style={{ margin: 0, fontSize: fontSize - 2, color: textColor }}>
-                                    {(file!.size / 1024 / 1024).toFixed(2)} MB • {status === "success" ? "Complete" : `${Math.round(progress)}%`}
-                                </p>
-                            </div>
-                            {status === "success" ? (
-                                <motion.div
-                                    initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                    style={{ color: successColor }}
-                                >
-                                    <CheckIcon />
-                                </motion.div>
-                            ) : null}
-                            <button
-                                onClick={removeFile}
-                                style={{
-                                    border: "none",
-                                    background: "transparent",
-                                    color: textColor,
-                                    cursor: "pointer",
-                                    padding: 4,
-                                    display: "flex"
-                                }}
-                            >
-                                <RemoveIcon />
-                            </button>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div style={{
-                            width: "100%",
-                            height: 6,
-                            background: "#E5E7EB",
-                            borderRadius: 3,
-                            overflow: "hidden"
-                        }}>
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                transition={{ type: "spring", bounce: 0 }}
-                                style={{
-                                    height: "100%",
-                                    background: status === "success" ? successColor : primaryColor,
-                                    borderRadius: 3
-                                }}
-                            />
-                        </div>
-                    </motion.div>
-                )}
+                <motion.div
+                    key="idle"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, width: "100%" }}
+                >
+                    <div style={{
+                        width: 48, height: 48, borderRadius: "50%",
+                        background: status === "error" ? `${errorColor}20` : `${primaryColor}20`,
+                        color: status === "error" ? errorColor : primaryColor,
+                        display: "flex", alignItems: "center", justifyContent: "center"
+                    }}>
+                        {status === "error" ? <ErrorIcon /> : <UploadIcon />}
+                    </div>
+                    <div style={{ textAlign: "center", pointerEvents: "none" }}>
+                        <p style={{ margin: 0, fontSize: fontSize, fontWeight: 600, color: status === "error" ? errorColor : "#111827", marginBottom: 4 }}>
+                            {status === "error" ? "Upload Failed" : heading}
+                        </p>
+                        <p style={{ margin: 0, fontSize: fontSize - 1, color: textColor }}>
+                            {status === "error" ? errorMessage : subheading}
+                        </p>
+                    </div>
+                </motion.div>
             </AnimatePresence>
         </div>
     )
@@ -381,7 +491,19 @@ addPropertyControls(FileUpload, {
         title: "Max MB",
         defaultValue: 5,
         min: 1,
-        max: 500
+        max: 50
+    },
+    receiverEmail: {
+        type: ControlType.String,
+        title: "Send to Email",
+        placeholder: "your@email.com",
+        description: "Receive uploads via email"
+    },
+    formTitle: {
+        type: ControlType.String,
+        title: "Email Subject",
+        defaultValue: "New Submission",
+        hidden: (props) => !props.receiverEmail
     },
     primaryColor: {
         type: ControlType.Color,
@@ -440,7 +562,8 @@ addPropertyControls(FileUpload, {
     simulateProgress: {
         type: ControlType.Boolean,
         title: "Simulate",
-        defaultValue: true
+        defaultValue: true,
+        hidden: (props) => !!props.receiverEmail
     },
     onUploadStart: {
         type: ControlType.EventHandler,
