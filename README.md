@@ -66,7 +66,11 @@ To receive file uploads directly to your email:
 1.  Set the `Send to Email` property to your email address.
 2.  (Optional) Customize the `Email Subject`.
 
-The component will trigger an overlay asking the uploader for their email. Once they confirm, the file and their email will be sent to your inbox via **FormSubmit**.
+The component will trigger a multi-step overlay:
+1.  **Email**: Uploader enters their email address.
+2.  **Details**: Uploader provides a "Location Description" and optional "GPS Coordinates" (with **Auto-Detect**).
+
+Once confirmed, the file, email, and location data are sent to your inbox via **FormSubmit**.
 
 > **Note**: The first time you use a new email address, you will receive an activation email from FormSubmit. You must click "Activate" to start receiving submissions.
 

@@ -45,6 +45,23 @@ const MailIcon = () => (
         <polyline points="22,6 12,13 2,6" />
     </svg>
 )
+
+const MapPinIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+        <circle cx="12" cy="10" r="3" />
+    </svg>
+)
+
+const LocateIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="22" y1="12" x2="18" y2="12" />
+        <line x1="6" y1="12" x2="2" y2="12" />
+        <line x1="12" y1="6" x2="12" y2="2" />
+        <line x1="12" y1="22" x2="12" y2="18" />
+    </svg>
+)
 // #endregion
 
 interface FileUploadProps {
@@ -109,11 +126,38 @@ export default function FileUpload(props: FileUploadProps) {
     const [isDragging, setIsDragging] = useState(false)
     const [file, setFile] = useState<File | null>(null)
     const [progress, setProgress] = useState(0)
-    const [status, setStatus] = useState<"idle" | "email_input" | "uploading" | "success" | "error">("idle")
+    // Updated Status: idle -> email_input -> details_input -> uploading -> success -> error
+    const [status, setStatus] = useState<"idle" | "email_input" | "details_input" | "uploading" | "success" | "error">("idle")
     const [errorMessage, setErrorMessage] = useState("")
+
+    // Form Data
     const [userEmail, setUserEmail] = useState("")
+    const [locationDescription, setLocationDescription] = useState("")
+    const [gpsCoordinates, setGpsCoordinates] = useState("")
+    const [isLocating, setIsLocating] = useState(false)
 
     const inputRef = useRef<HTMLInputElement>(null)
+
+    const handleAutoLocation = () => {
+        if (!navigator.geolocation) {
+            setErrorMessage("Geolocation is not supported by your browser")
+            return
+        }
+
+        setIsLocating(true)
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords
+                setGpsCoordinates(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)
+                setIsLocating(false)
+            },
+            (error) => {
+                console.error("Error getting location:", error)
+                setErrorMessage("Unable to retrieve location. Please check permissions.")
+                setIsLocating(false)
+            }
+        )
+    }
 
     const handleDragEnter = (e: React.DragEvent) => {
         e.preventDefault()
@@ -195,6 +239,13 @@ export default function FileUpload(props: FileUploadProps) {
             setErrorMessage("Please enter a valid email")
             return
         }
+        setErrorMessage("")
+        // Proceed to next step
+        setStatus("details_input")
+    }
+
+    const handleDetailsSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
         if (file) {
             startUpload(file)
         }
@@ -240,11 +291,23 @@ export default function FileUpload(props: FileUploadProps) {
     const uploadToEmail = (file: File): Promise<void> => {
         return new Promise((resolve, reject) => {
             const formData = new FormData()
-            formData.append("email", userEmail) // Sender's email
-            formData.append("attachment", file)
+
+            // Text fields (will appear in the email table)
+            formData.append("email", userEmail) // Sets Reply-To
             formData.append("_subject", formTitle)
-            formData.append("_captcha", "false")
             formData.append("_template", "table")
+            formData.append("_captcha", "false")
+
+            formData.append("File Name", file.name)
+            formData.append("File Size", `${(file.size / 1024 / 1024).toFixed(2)} MB`)
+            formData.append("File Type", file.type)
+
+            // New Fields
+            if (locationDescription) formData.append("Location Description", locationDescription)
+            if (gpsCoordinates) formData.append("GPS Coordinates", gpsCoordinates)
+
+            // The File itself
+            formData.append("attachment", file)
 
             const xhr = new XMLHttpRequest()
 
@@ -276,6 +339,8 @@ export default function FileUpload(props: FileUploadProps) {
         setProgress(0)
         setErrorMessage("")
         setUserEmail("")
+        setLocationDescription("")
+        setGpsCoordinates("")
         if (inputRef.current) inputRef.current.value = ""
     }
 
@@ -302,74 +367,185 @@ export default function FileUpload(props: FileUploadProps) {
 
     // --- Render Logic ---
 
-    // 1. Overlay (Email Input)
-    if (status === "email_input") {
+    // 1. Overlay Steps
+    if (status === "email_input" || status === "details_input") {
         return (
             <div style={containerStyle}>
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}
-                >
-                    <div style={{ textAlign: "center", marginBottom: 8 }}>
-                        <div style={{
-                            width: 48, height: 48, margin: "0 auto 12px",
-                            borderRadius: "50%", background: `${primaryColor}15`,
-                            display: "flex", alignItems: "center", justifyContent: "center", color: primaryColor
-                        }}>
-                            <MailIcon />
-                        </div>
-                        <h4 style={{ margin: 0, fontSize: fontSize, color: "#111827" }}>Enter your email</h4>
-                        <p style={{ margin: "4px 0 0", fontSize: fontSize - 2, color: textColor }}>We'll verify your submission</p>
-                    </div>
+                <AnimatePresence mode="wait">
+                    {status === "email_input" ? (
+                        <motion.div
+                            key="email-step"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}
+                        >
+                            <div style={{ textAlign: "center", marginBottom: 8 }}>
+                                <div style={{
+                                    width: 48, height: 48, margin: "0 auto 12px",
+                                    borderRadius: "50%", background: `${primaryColor}15`,
+                                    display: "flex", alignItems: "center", justifyContent: "center", color: primaryColor
+                                }}>
+                                    <MailIcon />
+                                </div>
+                                <h4 style={{ margin: 0, fontSize: fontSize, color: "#111827" }}>Enter your email</h4>
+                                <p style={{ margin: "4px 0 0", fontSize: fontSize - 2, color: textColor }}>We'll verify your submission</p>
+                            </div>
 
-                    <form onSubmit={handleEmailSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <input
-                            type="email"
-                            placeholder="name@example.com"
-                            value={userEmail}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserEmail(e.target.value)}
-                            autoFocus
-                            style={{
-                                width: "100%",
-                                padding: "10px 12px",
-                                borderRadius: 8,
-                                border: "1px solid #E5E7EB",
-                                fontSize: fontSize,
-                                outline: "none",
-                                fontFamily: font.fontFamily
-                            }}
-                        />
-                        <button
-                            type="submit"
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                borderRadius: 8,
-                                background: primaryColor,
-                                color: "white",
-                                border: "none",
-                                fontSize: fontSize,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                fontFamily: font.fontFamily
-                            }}
+                            <form onSubmit={handleEmailSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                <input
+                                    type="email"
+                                    placeholder="name@example.com"
+                                    value={userEmail}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserEmail(e.target.value)}
+                                    autoFocus
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: 8,
+                                        border: "1px solid #E5E7EB",
+                                        fontSize: fontSize,
+                                        outline: "none",
+                                        fontFamily: font.fontFamily
+                                    }}
+                                />
+                                <button
+                                    type="submit"
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px",
+                                        borderRadius: 8,
+                                        background: primaryColor,
+                                        color: "white",
+                                        border: "none",
+                                        fontSize: fontSize,
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        fontFamily: font.fontFamily
+                                    }}
+                                >
+                                    Next
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={removeFile}
+                                    style={{
+                                        background: "none", border: "none",
+                                        color: textColor, fontSize: fontSize - 2,
+                                        cursor: "pointer", marginTop: 4
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </form>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="details-step"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}
                         >
-                            Confirm & Upload
-                        </button>
-                        <button
-                            type="button"
-                            onClick={removeFile}
-                            style={{
-                                background: "none", border: "none",
-                                color: textColor, fontSize: fontSize - 2,
-                                cursor: "pointer", marginTop: 4
-                            }}
-                        >
-                            Cancel
-                        </button>
-                    </form>
-                </motion.div>
+                            <div style={{ textAlign: "center", marginBottom: 8 }}>
+                                <div style={{
+                                    width: 48, height: 48, margin: "0 auto 12px",
+                                    borderRadius: "50%", background: `${primaryColor}15`,
+                                    display: "flex", alignItems: "center", justifyContent: "center", color: primaryColor
+                                }}>
+                                    <MapPinIcon />
+                                </div>
+                                <h4 style={{ margin: 0, fontSize: fontSize, color: "#111827" }}>Location Details</h4>
+                                <p style={{ margin: "4px 0 0", fontSize: fontSize - 2, color: textColor }}>Add more context</p>
+                            </div>
+
+                            <form onSubmit={handleDetailsSubmit} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                <input
+                                    type="text"
+                                    placeholder="What location is the picture clicked at?"
+                                    value={locationDescription}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocationDescription(e.target.value)}
+                                    autoFocus
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: 8,
+                                        border: "1px solid #E5E7EB",
+                                        fontSize: fontSize,
+                                        outline: "none",
+                                        fontFamily: font.fontFamily
+                                    }}
+                                />
+                                <div style={{ position: "relative", width: "100%" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="GPS Coordinates (Optional)"
+                                        value={gpsCoordinates}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGpsCoordinates(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px 12px",
+                                            paddingRight: 40,
+                                            borderRadius: 8,
+                                            border: "1px solid #E5E7EB",
+                                            fontSize: fontSize,
+                                            outline: "none",
+                                            fontFamily: font.fontFamily
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAutoLocation}
+                                        title="Auto-detect Location"
+                                        style={{
+                                            position: "absolute",
+                                            right: 8,
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            background: "none",
+                                            border: "none",
+                                            color: isLocating ? primaryColor : textColor,
+                                            cursor: "pointer",
+                                            padding: 4,
+                                            display: "flex",
+                                            opacity: isLocating ? 0.5 : 1
+                                        }}
+                                    >
+                                        <LocateIcon />
+                                    </button>
+                                </div>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px",
+                                        borderRadius: 8,
+                                        background: primaryColor,
+                                        color: "white",
+                                        border: "none",
+                                        fontSize: fontSize,
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        fontFamily: font.fontFamily
+                                    }}
+                                >
+                                    Confirm & Upload
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStatus("email_input")}
+                                    style={{
+                                        background: "none", border: "none",
+                                        color: textColor, fontSize: fontSize - 2,
+                                        cursor: "pointer", marginTop: 4
+                                    }}
+                                >
+                                    Back
+                                </button>
+                            </form>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         )
     }
