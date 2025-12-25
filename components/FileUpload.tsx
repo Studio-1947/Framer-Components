@@ -145,6 +145,13 @@ export default function FileUpload(props: FileUploadProps) {
         }
 
         setIsLocating(true)
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords
@@ -153,9 +160,14 @@ export default function FileUpload(props: FileUploadProps) {
             },
             (error) => {
                 console.error("Error getting location:", error)
-                setErrorMessage("Unable to retrieve location. Please check permissions.")
+                let msg = "Unable to retrieve location."
+                if (error.code === 1) msg = "Location permission denied."
+                if (error.code === 2) msg = "Network error: Location unavailable."
+                if (error.code === 3) msg = "Location request timed out."
+                setErrorMessage(msg)
                 setIsLocating(false)
-            }
+            },
+            options
         )
     }
 
