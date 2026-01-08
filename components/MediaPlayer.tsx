@@ -38,6 +38,8 @@ export default function MediaPlayer(props: Props) {
     const [volume, setVolume] = React.useState(muted ? 0 : 1)
     const [isMuted, setIsMuted] = React.useState(muted)
     const [isFullscreen, setIsFullscreen] = React.useState(false)
+    const [isVolumeHovered, setIsVolumeHovered] = React.useState(false)
+    const [isVolumeDragging, setIsVolumeDragging] = React.useState(false)
 
     // Determine effective URL
     const effectiveUrl = inputType === "File" ? url : urlInput
@@ -81,13 +83,60 @@ export default function MediaPlayer(props: Props) {
         const x = e.clientX - bounds.left
         const percentage = x / bounds.width
         playerRef.current.seekTo(percentage, "fraction")
-        setProgress(percentage * 100) // Instant update
+        setProgress(percentage * 100)
     }
+
+    // Volume Drag Logic
+    const volumeRef = React.useRef<HTMLDivElement>(null)
+
+    const updateVolumeFromEvent = (clientX: number) => {
+        if (!volumeRef.current) return
+        const bounds = volumeRef.current.getBoundingClientRect()
+        const x = clientX - bounds.left
+        let newVolume = x / bounds.width
+        if (newVolume < 0) newVolume = 0
+        if (newVolume > 1) newVolume = 1
+
+        setVolume(newVolume)
+        setIsMuted(newVolume === 0)
+    }
+
+    const handleVolumeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.stopPropagation() // Prevent click through
+        setIsVolumeDragging(true)
+        updateVolumeFromEvent(e.clientX)
+    }
+
+    React.useEffect(() => {
+        if (!isVolumeDragging) return
+
+        const handleMouseMove = (e: MouseEvent) => {
+            e.preventDefault()
+            updateVolumeFromEvent(e.clientX)
+        }
+
+        const handleMouseUp = () => {
+            setIsVolumeDragging(false)
+        }
+
+        window.addEventListener("mousemove", handleMouseMove)
+        window.addEventListener("mouseup", handleMouseUp)
+
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove)
+            window.removeEventListener("mouseup", handleMouseUp)
+        }
+    }, [isVolumeDragging])
+
 
     const toggleMute = () => {
         const newMute = !isMuted
         setIsMuted(newMute)
-        setVolume(newMute ? 0 : 1)
+        if (newMute) {
+            setVolume(0)
+        } else {
+            setVolume(volume > 0 ? volume : 1)
+        }
     }
 
     const toggleFullscreen = () => {
@@ -111,6 +160,52 @@ export default function MediaPlayer(props: Props) {
         return () => document.removeEventListener("fullscreenchange", handleFSChange)
     }, [])
 
+    // Keyboard Shortcuts
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        // Prevent default behavior for controls to avoid page scrolling
+
+        switch (e.key) {
+            case " ":
+            case "k": // YouTube style
+                e.preventDefault()
+                togglePlay()
+                break
+            case "ArrowUp":
+                e.preventDefault()
+                setVolume(Math.min(1, volume + 0.1))
+                setIsMuted(false)
+                break
+            case "ArrowDown":
+                e.preventDefault()
+                setVolume(Math.max(0, volume - 0.1))
+                break
+            case "ArrowLeft":
+                e.preventDefault()
+                // Seek back 5s
+                if (playerRef.current) {
+                    const currentTime = playerRef.current.getCurrentTime()
+                    playerRef.current.seekTo(currentTime - 5)
+                }
+                break
+            case "ArrowRight":
+                e.preventDefault()
+                // Seek forward 5s
+                if (playerRef.current) {
+                    const currentTime = playerRef.current.getCurrentTime()
+                    playerRef.current.seekTo(currentTime + 5)
+                }
+                break
+            case "m":
+                e.preventDefault()
+                toggleMute()
+                break
+            case "f":
+                e.preventDefault()
+                toggleFullscreen()
+                break
+        }
+    }
+
     // Default placeholder
     if (!effectiveUrl) {
         return (
@@ -128,6 +223,8 @@ export default function MediaPlayer(props: Props) {
     return (
         <div
             ref={containerRef}
+            tabIndex={0} // Make focusable for keyboard events
+            onKeyDown={handleKeyDown}
             style={{
                 width: "100%",
                 height: "100%",
@@ -136,6 +233,7 @@ export default function MediaPlayer(props: Props) {
                 overflow: "hidden",
                 backgroundColor: "#000",
                 fontFamily: "Inter, sans-serif",
+                outline: "none", // Remove focus ring
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -154,7 +252,6 @@ export default function MediaPlayer(props: Props) {
                 onDuration={handleDuration}
                 onEnded={() => setPlaying(false)}
                 onError={(e) => console.error("ReactPlayer Error:", e)}
-                // Config for local files to accept poster
                 config={{
                     file: {
                         attributes: {
@@ -167,7 +264,11 @@ export default function MediaPlayer(props: Props) {
 
             {/* Click overlay to toggle play (invisible) */}
             <div
-                onClick={togglePlay}
+                onClick={(e) => {
+                    togglePlay()
+                    // Ensure focus for keyboard shortcuts
+                    if (containerRef.current) containerRef.current.focus()
+                }}
                 style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}
             />
 
@@ -183,9 +284,9 @@ export default function MediaPlayer(props: Props) {
                     display: "flex",
                     flexDirection: "column",
                     gap: "10px",
-                    opacity: isHovered || !playing ? 1 : 0,
+                    opacity: isHovered || !playing || isVolumeDragging ? 1 : 0,
                     transition: "opacity 0.3s ease",
-                    pointerEvents: isHovered || !playing ? "auto" : "none",
+                    pointerEvents: isHovered || !playing || isVolumeDragging ? "auto" : "none",
                     zIndex: 2,
                 }}
             >
@@ -235,10 +336,41 @@ export default function MediaPlayer(props: Props) {
                             {playing ? <PauseIcon /> : <PlayIcon />}
                         </button>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        {/* Volume Control Group */}
+                        <div
+                            style={{ display: "flex", alignItems: "center", gap: "5px", position: "relative" }}
+                            onMouseEnter={() => setIsVolumeHovered(true)}
+                            onMouseLeave={() => setIsVolumeHovered(false)}
+                        >
                             <button onClick={toggleMute} style={btnStyle}>
                                 {isMuted || volume === 0 ? <MuteIcon /> : <VolumeIcon />}
                             </button>
+
+                            {/* Volume Slider */}
+                            <div
+                                ref={volumeRef}
+                                style={{
+                                    width: isVolumeHovered || isVolumeDragging ? "60px" : "0px",
+                                    height: "4px",
+                                    backgroundColor: "rgba(255,255,255,0.2)",
+                                    borderRadius: "2px",
+                                    marginLeft: isVolumeHovered || isVolumeDragging ? "5px" : "0px",
+                                    overflow: "hidden",
+                                    transition: isVolumeDragging ? "none" : "width 0.2s ease, margin-left 0.2s ease",
+                                    cursor: "pointer",
+                                    position: "relative",
+                                    display: "flex",
+                                    alignItems: "center"
+                                }}
+                                onMouseDown={handleVolumeMouseDown}
+                            >
+                                <div style={{
+                                    height: "100%",
+                                    width: `${volume * 100}%`,
+                                    backgroundColor: "#fff",
+                                    borderRadius: "2px"
+                                }} />
+                            </div>
                         </div>
 
                         <span style={{ fontSize: "12px", fontWeight: 500, opacity: 0.9 }}>
