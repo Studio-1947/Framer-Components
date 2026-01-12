@@ -1,0 +1,7 @@
+<!-- 
+    FRAMER PERFORMANCE SCRIPT v2.0
+    Paste into: Site Settings > Custom Code > End of <body>
+    
+    Console: window.setFP('low'|'high') | window.fpMode
+-->
+<script>!function () { const L = 'fp-low', k = 'fp-m'; let t = localStorage.getItem(k); window.setFP = m => { localStorage.setItem(k, m); location.reload() }; if (!t) { try { const c = document.createElement('canvas'), g = c.getContext('webgl'), d = g?.getExtension('WEBGL_debug_renderer_info'), r = d ? g.getParameter(d.UNMASKED_RENDERER_WEBGL).toLowerCase() : ''; t = ['swift', 'llvm', 'soft', 'basic', 'mesa'].some(x => r.includes(x)) ? 'low' : 'high' } catch (e) { t = 'high' } const m = navigator.deviceMemory || 8, c = navigator.hardwareConcurrency || 4; if (m < 4 || c <= 2 || matchMedia('(prefers-reduced-motion:reduce)').matches) t = 'low' } if (t === 'low') { const s = document.createElement('style'); s.textContent = `.${L} *{box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important;animation-duration:0s!important;transition-duration:.1s!important}body.${L}::after{content:'⚡Lite';position:fixed;bottom:8px;right:8px;background:#000a;color:#fff;padding:3px 6px;border-radius:3px;font:10px system-ui;z-index:99999;opacity:.5}`; document.head.appendChild(s); document.body.classList.add(L) } window.fpMode = t }();</script>
