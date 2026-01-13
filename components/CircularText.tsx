@@ -95,8 +95,10 @@ export default function CircularText(props: CircularTextProps) {
             transition={{ duration: 0.8, ease: "easeOut" }}
             style={{
                 ...style,
-                width: containerSize,
-                height: containerSize,
+                width: "100%",
+                maxWidth: containerSize,
+                aspectRatio: "1 / 1",
+                height: "auto",
                 borderRadius: "50%",
                 position: "relative",
                 overflow: "visible",
@@ -107,8 +109,8 @@ export default function CircularText(props: CircularTextProps) {
             }}
         >
             <svg
-                width={containerSize}
-                height={containerSize}
+                width="100%"
+                height="100%"
                 viewBox={`0 0 ${containerSize} ${containerSize}`}
                 style={{ position: "absolute", top: 0, left: 0 }}
                 aria-label={text}
@@ -123,13 +125,6 @@ export default function CircularText(props: CircularTextProps) {
                     // Safe font fallbacks to handle various Framer Font control shapes
                     const fontWeight = font.fontWeight
                     const fontFamily = font.fontFamily
-                    // Smart clamp letterSpacing so glyph width + spacing fits per-character arc
-                    const inputSpacingPx = letterSpacing
-                    const perCharArcPx = (circumference || 1) / chars.length
-                    const avgCharWidthPx = 0.6 * fontSize
-                    const maxSpacingPx = Math.max(-0.5 * avgCharWidthPx, perCharArcPx - avgCharWidthPx)
-                    const minSpacingPx = -0.4 * fontSize
-                    const finalLetterSpacing = Math.max(minSpacingPx, Math.min(maxSpacingPx, inputSpacingPx))
                     const fontStyle = font.fontStyle
                     return (
                         <text
@@ -145,7 +140,6 @@ export default function CircularText(props: CircularTextProps) {
                                 fontSize,
                                 fontWeight,
                                 fontFamily,
-                                letterSpacing: finalLetterSpacing,
                                 fontStyle,
                             }}
                             transform={`rotate(${theta + 90} ${x} ${y})`}
