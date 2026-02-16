@@ -23,7 +23,7 @@
  *    • Apply  withTargetAmount      to the target-amount text layer
  * ──────────────────────────────────────────────────────────────────────
  *
- * @version 2.0.0
+ * @version 3.0.0 (Security Hardened)
  */
 
 import {
@@ -83,10 +83,61 @@ const TOTAL_ROW_LABEL: string = "Total Amount"
 const POLL_INTERVAL_MS: number = 30_000
 
 /**
+ * Maximum allowed donation amount (prevents overflow/absurd values)
+ * Default: 10 crores (100,000,000)
+ */
+const MAX_DONATION_AMOUNT: number = 100_000_000
+
+/**
+ * Maximum CSV response size in bytes (prevents memory exhaustion)
+ * Default: 1 MB
+ */
+const MAX_CSV_SIZE_BYTES: number = 1_048_576
+
+/**
  * Indian Rupee formatter (₹ 1,07,483 style — en-IN locale).
  */
 const formatINR = (value: number): string => {
     return `₹ ${new Intl.NumberFormat("en-IN").format(Math.round(value))}`
+}
+
+/**
+ * Sanitizes error messages for client display.
+ * Removes sensitive information like URLs, IDs, and internal details
+ * to prevent information leakage to potential attackers.
+ */
+const sanitizeErrorMessage = (error: unknown): string => {
+    if (!(error instanceof Error)) {
+        return "Unable to load donation data. Please try again later."
+    }
+
+    const message = error.message.toLowerCase()
+
+    // Map specific errors to user-friendly messages without exposing internals
+    if (message.includes("network") || message.includes("fetch")) {
+        return "Network error. Please check your connection."
+    }
+    if (message.includes("timeout")) {
+        return "Request timed out. Please try again."
+    }
+    if (message.includes("size") || message.includes("large") || message.includes("exceeds")) {
+        return "Data temporarily unavailable."
+    }
+    if (message.includes("invalid") || message.includes("parse")) {
+        return "Data format error. Please contact support."
+    }
+    if (message.includes("sheet") || message.includes("spreadsheet") || message.includes("url")) {
+        return "Configuration error. Please contact support."
+    }
+    if (message.includes("401") || message.includes("403") || message.includes("forbidden")) {
+        return "Access denied. Please contact support."
+    }
+    if (message.includes("404") || message.includes("not found")) {
+        return "Data source not found. Please contact support."
+    }
+
+    // Default generic message - never expose the actual error
+    return "Unable to load donation data. Please try again later."
 }
 
 // #endregion
@@ -214,6 +265,17 @@ function parseIndianNumber(raw: string): number {
     return isNaN(num) ? 0 : num
 }
 
+/**
+ * Validates and sanitizes donation amount.
+ * Returns 0 for invalid/negative values, caps at MAX_DONATION_AMOUNT.
+ * Prevents overflow attacks and absurd values from malicious input.
+ */
+function validateAmount(value: number): number {
+    if (typeof value !== "number" || isNaN(value)) return 0
+    if (value < 0) return 0
+    return Math.min(value, MAX_DONATION_AMOUNT)
+}
+
 // #endregion
 
 // ─────────────────────────────────────────────
@@ -254,6 +316,14 @@ let _pollingTimer: ReturnType<typeof setInterval> | null = null
 let _subscriberCount = 0
 let _isFetching = false
 
+// Circuit breaker state for resilience
+let _consecutiveFailures: number = 0
+let _circuitBreakerOpen: boolean = false
+let _circuitBreakerResetTime: number | null = null
+
+const MAX_CONSECUTIVE_FAILURES: number = 3
+const CIRCUIT_BREAKER_COOLDOWN_MS: number = 60_000  // 1 minute
+
 function _notify(): void {
     _listeners.forEach((fn) => {
         try {
@@ -265,6 +335,17 @@ function _notify(): void {
 }
 
 async function _fetchSheetData(): Promise<void> {
+    // Circuit breaker: Check if we should skip fetching
+    if (_circuitBreakerOpen) {
+        if (_circuitBreakerResetTime && Date.now() < _circuitBreakerResetTime) {
+            // Still in cooldown period, skip this fetch
+            return
+        }
+        // Cooldown expired, attempt to recover
+        _circuitBreakerOpen = false
+        _consecutiveFailures = 0
+    }
+
     if (_isFetching) return
     if (!GOOGLE_SHEETS_URL) {
         _sharedData = {
@@ -317,7 +398,19 @@ async function _fetchSheetData(): Promise<void> {
                     `Ensure the sheet is shared with \"Anyone with the link\".`
                 )
             }
+
+            // Security: Check response size before reading
+            const contentLength = response.headers.get("content-length")
+            if (contentLength && parseInt(contentLength) > MAX_CSV_SIZE_BYTES) {
+                throw new Error("Response size exceeds maximum allowed limit")
+            }
+
             csvText = await response.text()
+
+            // Security: Double-check actual text size
+            if (csvText.length > MAX_CSV_SIZE_BYTES) {
+                throw new Error("Response content exceeds maximum allowed size")
+            }
         }
 
         const parsedData = parseCsvToObjects(csvText)
@@ -343,7 +436,8 @@ async function _fetchSheetData(): Promise<void> {
 
                 if (cellValue === TOTAL_ROW_LABEL.toLowerCase().trim()) {
                     const rawTotal = amountKey ? row[amountKey] : ""
-                    currentAmount = parseIndianNumber(rawTotal)
+                    const parsedAmount = parseIndianNumber(rawTotal)
+                    currentAmount = validateAmount(parsedAmount)
                     break
                 }
             }
@@ -363,9 +457,23 @@ async function _fetchSheetData(): Promise<void> {
             error: null,
             isLoading: false,
         }
+
+        // Reset circuit breaker on successful fetch
+        _consecutiveFailures = 0
+        _circuitBreakerOpen = false
+        _circuitBreakerResetTime = null
     } catch (err: unknown) {
-        const errorMessage =
-            err instanceof Error ? err.message : "Unknown error fetching sheet data"
+        // Increment failure counter for circuit breaker
+        _consecutiveFailures++
+
+        // Open circuit breaker if too many consecutive failures
+        if (_consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            _circuitBreakerOpen = true
+            _circuitBreakerResetTime = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS
+        }
+
+        // Sanitize error message to prevent information leakage
+        const errorMessage = sanitizeErrorMessage(err)
 
         // Keep last good data if available, just update error
         _sharedData = {
@@ -401,6 +509,10 @@ function _subscribe(listener: Listener): () => void {
                 clearInterval(_pollingTimer)
                 _pollingTimer = null
             }
+            // Reset circuit breaker state when all subscribers disconnect
+            _consecutiveFailures = 0
+            _circuitBreakerOpen = false
+            _circuitBreakerResetTime = null
         }
     }
 }
@@ -436,6 +548,15 @@ function useDonationData(): DonationData {
  *
  * Sets the layer's width to the current donation percentage and
  * adds a smooth transition so the bar animates when data refreshes.
+ *
+ * ─── FRAMER LAYOUT TIPS ─────────────────────────────────────────────
+ * For best results, set the progress bar layer's width to:
+ *   • "Auto" or a fixed pixel value (e.g., 100px) in Framer
+ *   • Do NOT use "Fill" or "Fit" as Framer's layout will override
+ * 
+ * The override will dynamically set the width as a percentage of the
+ * parent container based on the donation progress.
+ * ─────────────────────────────────────────────────────────────────────
  */
 export const withDonationProgress = (
     Component: ComponentType<any>
@@ -450,8 +571,13 @@ export const withDonationProgress = (
                 {...props}
                 style={{
                     ...props?.style,
+                    // Use multiple properties to ensure width takes priority
+                    // over Framer's layout system
                     width: `${pct}%`,
-                    transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                    minWidth: `${pct}%`,
+                    maxWidth: `${pct}%`,
+                    flex: "none", // Prevent flex from overriding width
+                    transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.8s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
             />
         )
